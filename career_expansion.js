@@ -202,7 +202,7 @@ function preparePregame(s,team,opponent,phase){
  if(c.pregameComplete===key)return null;
  const candidate=pick(EVENTS);
  const context={club:team?.name||'tu club',rival:opponent?.name||'el rival',star:teammate(team),opponentStar:teammate(opponent)};
- const e={key,id:candidate.id,text:replaceVars(candidate.text,context),options:candidate.options.map(o=>({label:replaceVars(o.label,context),stat:o.stat})),team:context.club,rival:context.rival,opponentStar:context.opponentStar};
+ const e={key,id:candidate.id,text:replaceVars(candidate.text,context),options:candidate.options.map(o=>({label:replaceVars(o.label,context),stat:o.stat})),team:context.club,rival:context.rival,opponentStar:roster(opponent).length?context.opponentStar:'',teammate:roster(team).length?context.star:''};
  c.pregame=e;return e;
 }
 function resolvePregame(s,index){
@@ -230,7 +230,8 @@ function resolvePregame(s,index){
 const originalPrepare=E.prepare;
 E.prepare=function(s,team,opponent,phase){
  const c=seed(s),p=originalPrepare(s,team,opponent,phase);
- const real=teammate(team);
+ const real=p?.teammate||teammate(team);
+ if(p){p.teammate=roster(team).length?real:'';p.opponentStar=roster(opponent).length?(p.opponentStar||teammate(opponent)):'';}
  const old=OLD[team?.abbr]||'el capitán de '+team.name;
  if(p&&!c.replacedStarFor){p.prompt=p.prompt.split(old).join(real);p.options.forEach(o=>o.label=o.label.split(old).join(real));c.replacedStarFor=p.sceneId;}
  if(p&&c.pregameBoost&&!p.pregameApplied){p.modifier+=c.pregameBoost.modifier;p.dayDesc+=' '+(c.pregameBoost.success?'El calentamiento previo salió bien.':'El calentamiento previo te dejó dudas.');p.pregameApplied=true;}
