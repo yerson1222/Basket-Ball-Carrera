@@ -145,7 +145,7 @@ function train(skill){if(!save||save.world.phase!=='regular')return;if(save.worl
 const skillName=s=>({shooting:'Tiro',playmaking:'Creación',defense:'Defensa',athleticism:'Atletismo'})[s]||s;
 function avatar(name='WH'){const chars=name.trim().split(/\s+/);return (chars.length>1?chars[0][0]+chars[chars.length-1][0]:name.slice(0,2)).toUpperCase();}
 function teamLogo(team,size='md'){if(!team)return '<span class="team-logo empty" aria-hidden="true">—</span>';return `<span class="team-logo ${size} ${team.logo?'real-logo':''}" style="--team-color:${team.color}" title="${esc(team.name)}" aria-label="${esc(team.name)}">${team.logo?`<img src="${esc(team.logo)}" alt="" loading="lazy" onerror="this.style.display=\'none\';this.parentNode.append(document.createTextNode(this.dataset.abbr))" data-abbr="${esc(team.abbr)}">`:esc(team.abbr)}</span>`;}
-function leagueBadge(l,size='sm'){if(!l)return '';return l.logo?`<span class="league-badge ${size}"><img src="${esc(l.logo)}" alt="" loading="lazy"></span>`:`<span class="league-flag ${size}">${esc(l.flag)}</span>`;}
+function leagueBadge(l,size='sm'){if(!l)return '';return l.logo?`<span class="league-badge ${size}"><img src="${esc(l.logo)}" alt="" loading="lazy" data-fallback="${esc(l.flag)}" onerror="this.replaceWith(document.createTextNode(this.dataset.fallback))"></span>`:`<span class="league-flag ${size}">${esc(l.flag)}</span>`;}
 function logoCoverage(l){const c=DATA.leagueLogoCoverage?.[l.id];return c?`${c.found} de ${c.total} escudos`:'';}
 function statusPill(text,kind='neutral'){return `<span class="pill ${kind}">${esc(text)}</span>`;}
 function actionButton(text,action,klass='primary',extra=''){return `<button type="button" class="btn ${klass}" data-action="${action}" ${extra}>${text}</button>`;}
