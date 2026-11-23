@@ -68,6 +68,7 @@ function career(s){
 }
 function status(s){
  const c=career(s),v=c.coachTrust;
+ if(c.released)return 'CONTRATO RESCINDIDO';
  return v>=74?'TITULAR INDISCUTIBLE':v>=56?'TITULAR':v>=39?'ROTACIÓN / SUPLENTE':v>=23?'BANQUILLO · EN RIESGO':'RIESGO DE RESCISIÓN';
 }
 function recordGame(s,line,home,ourPower,theirPower){
@@ -97,7 +98,7 @@ function marketFactor(s){
 }
 function offersBonus(s){const c=career(s);return Math.floor(Math.max(0,c.popularity-35)/18);}
 function updateSeason(s,moved){
- const c=career(s);c.coachTrust=Math.max(34,Math.min(82,c.coachTrust+(moved?12:4)));
+ const c=career(s);c.released=false;c.contractNotice=false;c.coachTrust=Math.max(34,Math.min(82,c.coachTrust+(moved?12:4)));
  c.roleRisk=0;
 }
 Object.assign(W,{nbaPlayers:baseRoster,worldEvents:EXTRA,worldTeamPower:TEAM_POWER,teamStrength,playerRating,initWorld:career,roleStatus:status,recordGame,marketFactor,offersBonus,updateSeason});
