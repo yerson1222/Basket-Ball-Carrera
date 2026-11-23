@@ -68,3 +68,6 @@
 .wh-attribute-change.positive{background:#143b28;border-color:#356e42;color:#75ff9f}
 .wh-attribute-change.negative{background:#44202b;border-color:#8b4a59;color:#ff889e}
 @media(max-width:750px){.wh-card-grid{grid-template-columns:1fr}.wh-training-card{min-height:180px}.wh-training-dialog{padding:17px!important}}
+
+.wh-real-stars{display:flex;flex-wrap:wrap;gap:8px 16px;padding:10px 12px;margin:12px 0;background:#112d3c;border:1px solid #2d5767;border-radius:10px;color:#bad0da;font-size:11px;font-weight:700;letter-spacing:.35px}
+.wh-real-stars strong{color:#e3f5ff;font-size:12px}
