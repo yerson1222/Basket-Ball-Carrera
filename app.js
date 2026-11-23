@@ -20,7 +20,7 @@ const continent=id=>DATA.continents.find(x=>x.id===id);
 const hash=s=>[...s].reduce((a,c)=>((a<<5)-a+c.charCodeAt(0))|0,0);
 const initialSave=()=>{try{const s=JSON.parse(localStorage.getItem(KEY));if(!s||s.version!==1||!s.player||!s.world)return null;if(s.leagueId==='lnbp'){s.leagueId='cibacopa';s.teamId='cibacopa-0';s.world=freshWorld('cibacopa');s.offers=[];s.salary=salaryEstimate('cibacopa',Math.round((s.player.skills.shooting+s.player.skills.playmaking+s.player.skills.defense+s.player.skills.athleticism)/4));s.news=Array.isArray(s.news)?s.news:[];s.news.unshift({title:'Liga mexicana actualizada',description:'¡Nuevo desafío! Tu carrera continúa en CIBACOPA, México.',type:'activity',season:s.season,week:0});localStorage.setItem(KEY,JSON.stringify(s));}return league(s.leagueId)&&club(s.teamId)?s:null;}catch{return null;}};
 let save=initialSave();
-if(save)CAREER.init(save);
+if(save){CAREER.init(save);CAREER.initWorld(save);}
 const ui={tab:'home',browseContinent:save?league(save.leagueId).continent:'north',browseLeague:save?.leagueId||'nba',menu:false,modal:null};
 const iconMap={
   home:'<path d="m3 10 9-7 9 7v10a1 1 0 0 1-1 1h-5v-7H9v7H4a1 1 0 0 1-1-1z"/>',
@@ -74,16 +74,28 @@ function initialSkills(pos,style){const a={shooting:62,playmaking:62,defense:62,
 function freshWorld(lid){const teams=clubList(lid),ids=teams.map(t=>t.id),table={};ids.forEach(id=>table[id]={w:0,l:0,pf:0,pa:0,streak:0});return {table,rounds:fixtureRounds(ids,lid),week:0,phase:'regular',results:[],playerGames:[],playoffs:null,lastMatch:null,champion:null,trainingWeek:-1};}
 function createCareer(fields){const lid=fields.league,teamId=fields.team,sk=initialSkills(fields.position,fields.style);const p={name:fields.name.trim().slice(0,24),country:fields.country,age:+fields.age,position:fields.position,style:fields.style,skills:sk,xp:0,energy:96,injury:0};const ov=playerOverall(p);
  save={version:1,player:p,leagueId:lid,teamId,salary:salaryEstimate(lid,ov),season:1,year:2026,fans:125,reputation:30,earnings:0,history:[],awards:[],offers:[],world:freshWorld(lid),news:[]};
- CAREER.init(save);addNews('¡Comienza tu historia!',`${p.name} firma su primer contrato con ${shortName(teamId)}. El mundo está mirando.`,'spark');
+ CAREER.init(save);CAREER.initWorld(save);addNews('¡Comienza tu historia!',`${p.name} firma su primer contrato con ${shortName(teamId)}. El mundo está mirando.`,'spark');
  ui.tab='home';ui.browseContinent=league(lid).continent;ui.browseLeague=lid;persist();render();closeModal();toast('¡Bienvenido a World Hoops!');
 }
 function addNews(title,description,type='activity'){save.news.unshift({title,description,type,season:save.season,week:save.world.week});save.news=save.news.slice(0,28);}
 function persist(){try{localStorage.setItem(KEY,JSON.stringify(save));}catch{toast('No se pudo guardar la partida; revisa el espacio del navegador.');}}
-function teamScore(a,b,lid,home){const l=league(lid),pace=l.quality>=93?114:l.quality>=84?91:l.quality>=74?85:78;const strength=(a.rating-b.rating)*1.15;return clamp(Math.round(pace+strength+(home?3:0)+rand(-16,16)),53,155);}
+function teamScore(a,b,lid,home){
+ const l=league(lid),pace=l.quality>=93?111:l.quality>=84?90:l.quality>=74?84:77;
+ const aPower=CAREER.teamStrength(a),bPower=CAREER.teamStrength(b);
+ // Ventaja de casa suave y coeficiente del nivel de plantilla.
+ const homeBoost=home?2.6:-1.4;
+ const base=(aPower-bPower)*1.32+homeBoost;
+ let own=0;
+ if(save&&a.id===save.teamId){
+  const c=CAREER.initWorld(save),ov=playerOverall();
+  own=clamp((ov-aPower)*.19,-3.5,3.5)+clamp((c.coachTrust-55)*.045,-2.1,2);
+ }
+ return clamp(Math.round(pace+base+own+rand(-12.5,12.5)),53,170);
+}
 function calcPlayerGame(teamPts,opponent,lid,round,stage='regular'){
  const p=save.player,ov=playerOverall(),t=currentTeam(),gap=ov-league(lid).quality;const dnp=p.injury>0;
  if(dnp){p.injury--;return {week:round,stage,opponent,pts:0,reb:0,ast:0,stl:0,blk:0,min:0,fg:0,threes:0,dnp:true};}
- const min=clamp(Math.round(25+(ov-t.rating)*.58+rand(-5,5)),8,39);
+ const c=CAREER.initWorld(save),min=clamp(Math.round(23+(ov-CAREER.teamStrength(t))*.55+(c.coachTrust-50)*.2+rand(-4,4)),5,40);
  const shots=clamp(13+(p.skills.shooting-65)*.25+gap*.15+(p.style==='scorer'?4:0),4,32);
  const pts=clamp(Math.round(shots*min/29+rand(-7,8)),0,Math.round(teamPts*.46));
  const reb=clamp(Math.round((p.position==='C'?8:p.position==='PF'?6:p.position==='SF'?4.5:3)+(.12*(p.skills.athleticism-65))+rand(-2.5,3)),0,19);
@@ -118,7 +130,14 @@ function playFixture(m,stage,week){const home=club(m.home),away=club(m.away);let
  }
  if(hs===as){if(Math.random()<.5)hs+=randint(2,9);else as+=randint(2,9);}
  const result={home:m.home,away:m.away,hs,as,stage,week,winner:hs>as?m.home:m.away};
- if(m.home===save.teamId||m.away===save.teamId){const op=m.home===save.teamId?m.away:m.home;const mine=m.home===save.teamId?hs:as,other=m.home===save.teamId?as:hs;const line=calcPlayerGame(mine,op,save.leagueId,week,stage);line.win=mine>other;line.teamScore=mine;line.opponentScore=other;save.world.playerGames.push(line);save.world.lastMatch={...result,player:line};CAREER.pay(save);if(save.career)delete save.career.pendingImpact;if(!line.dnp&&line.pts>=30)addNews('¡Actuación estelar!',`${save.player.name} explotó con ${line.pts} puntos frente a ${shortName(op)}.`,'fire');}
+ if(m.home===save.teamId||m.away===save.teamId){const op=m.home===save.teamId?m.away:m.home;const mine=m.home===save.teamId?hs:as,other=m.home===save.teamId?as:hs;const line=calcPlayerGame(mine,op,save.leagueId,week,stage);line.win=mine>other;line.teamScore=mine;line.opponentScore=other;save.world.playerGames.push(line);save.world.lastMatch={...result,player:line};
+ const feedback=CAREER.recordGame(save,line,m.home===save.teamId,CAREER.teamStrength(currentTeam()),CAREER.teamStrength(club(op)));
+ if(feedback.change<-5)addNews('El entrenador exige más',`Tu rendimiento frente a ${shortName(op)} ha reducido la confianza del club.`,'warning');
+ if(feedback.trust<18&&save.world.playerGames.length>=7&&!save.career.contractNotice){
+  save.career.contractNotice=true;
+  addNews('Tu contrato, bajo presión','El entrenador te advierte: necesitas recuperar la confianza para seguir en este club.','warning');
+ }
+ CAREER.pay(save);if(save.career)delete save.career.pendingImpact;if(!line.dnp&&line.pts>=30)addNews('¡Actuación estelar!',`${save.player.name} explotó con ${line.pts} puntos frente a ${shortName(op)}.`,'fire');}
  return result;
 }
 function simulateWeek(){if(!save||save.world.phase!=='regular')return null;
@@ -141,17 +160,19 @@ function finalizeSeason(){const w=save.world,p=save.player,stats=seasonStats(),c
  addNews(champ?'¡CAMPEONES DEL MUNDO HOOPS!':'Temporada terminada',champ?`${currentTeam().name} alza el trofeo. ${p.name} ya es parte de la historia.`:`Acabas la temporada #${save.season}. Llegó el momento de decidir tu futuro.`,'trophy');
  save.offers=generateOffers();
 }
-function generateOffers(){const p=save.player,ov=playerOverall(),current=league(save.leagueId);const eligible=DATA.leagues.filter(l=>l.id!==save.leagueId&&l.quality<=Math.max(ov+20,current.quality+12));const combos=[];
+function generateOffers(){const p=save.player,ov=playerOverall(),current=league(save.leagueId);const pop=CAREER.initWorld(save).popularity;const eligibility=clamp((pop-35)*.22,0,15);const eligible=DATA.leagues.filter(l=>l.id!==save.leagueId&&l.quality<=Math.max(ov+16+eligibility,current.quality+11+eligibility*.7));const combos=[];
  const bands=[...eligible].sort((a,b)=>Math.abs(a.quality-(current.quality+3))-Math.abs(b.quality-(current.quality+3)));
  const pool=[...bands.slice(0,9).sort(()=>Math.random()-.5).slice(0,2),pick(eligible.filter(l=>l.continent!==current.continent).length?eligible.filter(l=>l.continent!==current.continent):eligible),pick(eligible)];
- for(const l of pool){if(!l||combos.some(c=>c.leagueId===l.id))continue;const t=pick(clubList(l.id));let salary=salaryEstimate(l.id,ov)*(1+rand(.05,.24));salary=Math.round(salary/1000)*1000;combos.push({id:`offer-${l.id}`,leagueId:l.id,teamId:t.id,salary,years:1,role:ov>=l.quality?'Titular':'Rotación'});}
- if(save.leagueId==='gleague'){const my=club(save.teamId),s=seasonStats();if(my?.affiliate&&(ov>=73||s.ppg>=16||save.reputation>=47)){const target=club(my.affiliate);combos.unshift({id:'offer-nba-callup',leagueId:'nba',teamId:target.id,salary:Math.max(900000,salaryEstimate('nba',ov)),years:1,role:'Ascenso a la NBA'});addNews('¡Oportunidad NBA!',`${target.name}, franquicia asociada a ${my.name}, quiere ficharte para la próxima temporada.`,'transfer');}}return combos.filter((c,i)=>combos.findIndex(o=>o.teamId===c.teamId)===i).slice(0,4);
+ for(const l of pool){if(!l||combos.some(c=>c.leagueId===l.id))continue;const t=pick(clubList(l.id));let salary=salaryEstimate(l.id,ov)*(1+rand(.03,.2))*CAREER.marketFactor(save);salary=Math.round(salary/1000)*1000;combos.push({id:`offer-${l.id}`,leagueId:l.id,teamId:t.id,salary,years:1,role:ov>=l.quality?'Titular':'Rotación'});}
+ if(save.leagueId==='gleague'){const my=club(save.teamId),s=seasonStats();if(my?.affiliate&&(ov>=73||s.ppg>=16||save.reputation>=47||CAREER.initWorld(save).popularity>=65)){const target=club(my.affiliate);combos.unshift({id:'offer-nba-callup',leagueId:'nba',teamId:target.id,salary:Math.max(900000,salaryEstimate('nba',ov)),years:1,role:'Ascenso a la NBA'});addNews('¡Oportunidad NBA!',`${target.name}, franquicia asociada a ${my.name}, quiere ficharte para la próxima temporada.`,'transfer');}}return combos.filter((c,i)=>combos.findIndex(o=>o.teamId===c.teamId)===i).slice(0,Math.min(7,4+CAREER.offersBonus(save)));
 }
 function nextSeason(offer){if(save.world.phase!=='offseason')return;
  const prev=currentTeam().name,wasMoved=offer&&offer.teamId!==save.teamId;
  save.year++;save.season++;save.player.age++;save.player.energy=100;save.player.injury=0;save.player.xp+=20;
- if(offer){save.teamId=offer.teamId;save.leagueId=offer.leagueId;save.salary=offer.salary;}else{save.salary=Math.round(save.salary*1.08/1000)*1000;}
- save.world=freshWorld(save.leagueId);save.offers=[];
+ if(offer){save.teamId=offer.teamId;save.leagueId=offer.leagueId;save.salary=offer.salary;}
+ else if(CAREER.initWorld(save).coachTrust<23){toast('El club no renueva tu contrato. Debes escoger otra oferta.');return;}
+ else{save.salary=Math.round(save.salary*1.08/1000)*1000;}
+ save.world=freshWorld(save.leagueId);save.offers=[];CAREER.updateSeason(save,wasMoved);
  addNews(wasMoved?'¡FICHAJE CONFIRMADO!':'Contrato renovado',wasMoved?`${save.player.name} deja ${prev} y ficha por ${shortName(save.teamId)}. Nuevo salario: ${money(save.salary)}.`:`${save.player.name} seguirá una temporada más en ${shortName(save.teamId)}.`,'transfer');
  ui.tab='home';ui.browseLeague=save.leagueId;ui.browseContinent=league(save.leagueId).continent;persist();render();toast(wasMoved?'¡Nuevo equipo, nuevo desafío!':'¡Nueva temporada!');
 }
@@ -400,7 +421,7 @@ function choosePregameEvent(index){
 }
 
 function exportSave(){const blob=new Blob([JSON.stringify(save,null,2)],{type:'application/json'}),url=URL.createObjectURL(blob),a=document.createElement('a');a.href=url;a.download=`WorldHoops_${save.player.name.replace(/[^a-z\d]/gi,'_')}_Temporada${save.season}.json`;document.body.appendChild(a);a.click();a.remove();URL.revokeObjectURL(url);toast('Partida exportada correctamente.');}
-async function importSave(file){try{if(!file)return;if(file.size>2e6)throw Error('Archivo demasiado grande');const parsed=JSON.parse(await file.text());if(parsed.version!==1||!parsed.player||!parsed.world||!league(parsed.leagueId)||!club(parsed.teamId)||!Array.isArray(parsed.history))throw Error('Partida no compatible');save=parsed;CAREER.init(save);ui.tab='home';ui.browseContinent=league(save.leagueId).continent;ui.browseLeague=save.leagueId;persist();render();toast('Partida importada.');}catch(e){toast(`No se pudo importar: ${e.message}`);}}
+async function importSave(file){try{if(!file)return;if(file.size>2e6)throw Error('Archivo demasiado grande');const parsed=JSON.parse(await file.text());if(parsed.version!==1||!parsed.player||!parsed.world||!league(parsed.leagueId)||!club(parsed.teamId)||!Array.isArray(parsed.history))throw Error('Partida no compatible');save=parsed;CAREER.init(save);CAREER.initWorld(save);ui.tab='home';ui.browseContinent=league(save.leagueId).continent;ui.browseLeague=save.leagueId;persist();render();toast('Partida importada.');}catch(e){toast(`No se pudo importar: ${e.message}`);}}
 document.addEventListener('submit',e=>{if(e.target.id==='career-form'){e.preventDefault();const form=new FormData(e.target);const fields=Object.fromEntries(form.entries());if(!fields.name||fields.name.trim().length<2)return toast('Escribe al menos 2 letras.');if(!league(fields.league)||!club(fields.team)||!club(fields.team).id.startsWith(fields.league+'-'))return toast('Selecciona un club válido.');createCareer(fields);}});
 document.addEventListener('change',e=>{if(e.target.id==='career-league'){$('#career-team').innerHTML=clubList(e.target.value).map(c=>`<option value="${c.id}">${esc(c.name)}${c.affiliate?' · '+esc(shortName(c.affiliate)):''}</option>`).join('');}if(e.target.id==='save-import')importSave(e.target.files?.[0]);});
 document.addEventListener('keydown',e=>{if(e.key==='Escape')closeModal();});
