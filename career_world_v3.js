@@ -31,12 +31,30 @@ W.preparePregame=function(s,team,opponent,phase){
  }
  return prior;
 };
+const STAR_BONUS={
+ 'Nikola Jokić':7,'Shai Gilgeous-Alexander':7,'Victor Wembanyama':7,'Luka Dončić':7,
+ 'Giannis Antetokounmpo':7,'Stephen Curry':6,'Anthony Edwards':6,'Jayson Tatum':6,
+ 'Jalen Brunson':5,'Cade Cunningham':5,'Donovan Mitchell':5,'LeBron James':5,
+ 'Kevin Durant':5,'Devin Booker':5,'James Harden':5,'Joel Embiid':6,
+ 'Kyrie Irving':5,'Tyrese Haliburton':5,'Paolo Banchero':4,'Jalen Williams':4,
+ 'Jalen Johnson':4,'Bam Adebayo':4,'Chet Holmgren':5,'Cooper Flagg':4
+};
+function playerRating(name,team){
+ const names=W.playerNames(team),idx=names.indexOf(name),base=TEAM_POWER[team?.abbr]??team?.rating??76;
+ if(idx<0)return Math.max(60,Math.min(98,base-6));
+ // Ratings propios del simulador: posición de plantilla, fuerza colectiva y nivel de figura.
+ const estimate=base+3.5-Math.max(0,idx)*1.15+(STAR_BONUS[name]||0);
+ return Math.max(56,Math.min(99,Math.round(estimate)));
+}
 function teamStrength(team){
  if(!team)return 75;
- const base=typeof TEAM_POWER[team.abbr]==='number'?TEAM_POWER[team.abbr]:team.rating||75;
- const list=W.playerNames(team);
- const depth=Math.min(2.8,Math.max(-2.8,(list.length-8)*.23));
- return Math.max(55,Math.min(98,base+depth));
+ const base=typeof TEAM_POWER[team.abbr]==='number'?TEAM_POWER[team.abbr]:(team.rating||75);
+ const roster=W.playerNames(team);
+ if(!roster.length)return Math.max(55,Math.min(98,base));
+ const keyPlayers=roster.map(name=>playerRating(name,team)).sort((a,b)=>b-a).slice(0,6);
+ const avg=keyPlayers.reduce((a,n)=>a+n,0)/keyPlayers.length;
+ const depth=Math.max(-1,Math.min(1.6,(roster.length-7)*.2));
+ return Math.max(55,Math.min(98,+(base*.68+avg*.32+depth).toFixed(2)));
 }
 function career(s){
  const c=W.init(s);
@@ -82,5 +100,5 @@ function updateSeason(s,moved){
  const c=career(s);c.coachTrust=Math.max(34,Math.min(82,c.coachTrust+(moved?12:4)));
  c.roleRisk=0;
 }
-Object.assign(W,{nbaPlayers:baseRoster,worldEvents:EXTRA,worldTeamPower:TEAM_POWER,teamStrength,initWorld:career,roleStatus:status,recordGame,marketFactor,offersBonus,updateSeason});
+Object.assign(W,{nbaPlayers:baseRoster,worldEvents:EXTRA,worldTeamPower:TEAM_POWER,teamStrength,playerRating,initWorld:career,roleStatus:status,recordGame,marketFactor,offersBonus,updateSeason});
 })();
