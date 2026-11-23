@@ -240,6 +240,88 @@ function closeModal(){const root=$('#modal-root');if(root)root.innerHTML='';docu
 function toast(text){const root=$('#toast-root');if(!root)return;root.innerHTML=`<div class="toast">${ico('check',18)} ${esc(text)}</div>`;clearTimeout(toast.timer);toast.timer=setTimeout(()=>{root.innerHTML='';},3400);}
 function render(){document.title=save?`World Hoops | ${save.player.name}`:'World Hoops | Modo Carrera';$('#app').innerHTML=save?shell():landing();}
 function runSimulation(n){requestMatchDecision('regular');}
+
+function careerDecisionModal(){
+ const p=CAREER.init(save).pending;
+ if(!p)return '';
+ const options=p.options.map((o,i)=>'<button type="button" class="decision-option" data-action="decide-game" data-choice="'+i+'"><span class="decision-num">0'+(i+1)+'</span><strong>'+esc(o.label)+'</strong><span class="decision-arrow">→</span></button>').join('');
+ return '<div class="modal-backdrop decision-backdrop"><div class="modal-card decision-dialog" role="dialog" aria-modal="true" aria-label="Decisión del partido">'+
+ '<div class="decision-eyebrow">WORLD HOOPS · TU PRÓXIMA DECISIÓN</div>'+
+ '<div class="decision-context">'+esc(p.club)+' <span>VS</span> '+esc(p.rival)+'</div>'+
+ '<div class="decision-mood"><strong>'+esc(p.day)+'</strong><p>'+esc(p.dayDesc)+'</p></div>'+
+ '<h2>'+esc(p.prompt)+'</h2><p class="decision-help">Tus estadísticas, la energía y la preparación influyen en el resultado.</p>'+
+ '<div class="decision-options">'+options+'</div>'+
+ '<button type="button" class="btn ghost" data-action="close-modal">Volver</button></div></div>';
+}
+function trainingChoiceModal(skill){
+ const name=skillName(skill);
+ return '<div class="modal-backdrop decision-backdrop"><div class="modal-card decision-dialog" role="dialog" aria-modal="true" aria-label="Entrenamiento">'+
+ '<div class="decision-eyebrow">CENTRO DE ENTRENAMIENTO</div><h2>¿Cómo quieres trabajar '+esc(name)+'?</h2>'+
+ '<p class="decision-help">La intensidad puede mejorar más tu atributo, pero también te agota y aumenta el riesgo de lesión.</p>'+
+ '<div class="decision-options">'+
+ '<button type="button" class="decision-option" data-action="training-choice" data-skill="'+esc(skill)+'" data-method="intense"><strong>Entrenamiento intenso</strong><small>Progreso alto · mayor desgaste</small></button>'+
+ '<button type="button" class="decision-option" data-action="training-choice" data-skill="'+esc(skill)+'" data-method="technical"><strong>Trabajo técnico</strong><small>Progreso equilibrado · desgaste moderado</small></button>'+
+ '<button type="button" class="decision-option" data-action="training-choice" data-skill="'+esc(skill)+'" data-method="recovery"><strong>Sesión de recuperación</strong><small>Menor progreso · recuperas energía</small></button>'+
+ '</div><button type="button" class="btn ghost" data-action="close-modal">Volver</button></div></div>';
+}
+function renderLife(){
+ const c=CAREER.init(save);
+ const items=CAREER.items.map(item=>{
+  const owned=c.owned.includes(item.id);
+  const symbol=item.stat==='shooting'?'target':item.stat==='defense'?'shield':item.stat==='athleticism'?'bolt':item.stat==='playmaking'?'activity':'spark';
+  return '<article class="life-item"><div class="life-item-icon">'+ico(symbol,25)+'</div><h3>'+esc(item.name)+'</h3><p>'+esc(item.desc)+'</p>'+
+   '<div class="life-item-bottom"><strong>'+money(item.price)+'</strong>'+
+   '<button class="btn '+(owned?'outline':'primary')+' small" type="button" data-action="buy-life" data-id="'+esc(item.id)+'" '+(owned||c.cash<item.price?'disabled':'')+'>'+(owned?'Comprado':'Comprar')+'</button></div></article>';
+ }).join('');
+ const history=c.log.slice(0,5).map(h=>'<div class="life-history-row"><span>'+esc(h.day)+' · '+esc(h.club)+'</span><strong>'+esc(h.success?'Acertaste':'No salió')+'</strong></div>').join('')||'<p class="muted">Tu historia se está escribiendo en la cancha.</p>';
+ return pageTitle('Mi estilo de vida','Invierte en tu carrera, recupera energía y toma decisiones fuera de la cancha.')+
+ '<div class="life-wallet"><div><small>SALDO DISPONIBLE</small><strong>'+money(c.cash)+'</strong><p>Tu contrato te paga después de cada partido.</p></div><div><small>MEJORAS ADQUIRIDAS</small><strong>'+c.owned.length+' / '+CAREER.items.length+'</strong><p>Las mejoras te acompañan a cualquier equipo.</p></div></div>'+
+ '<section class="panel"><div class="section-head"><div><div class="eyebrow">TU INVERSIÓN</div><h2>Entrenamiento, salud y estilo de vida</h2></div></div><div class="life-shop-grid">'+items+'</div></section>'+
+ '<section class="panel"><div class="section-head"><div><div class="eyebrow">TU HISTORIA</div><h2>Últimas decisiones</h2></div></div>'+history+'</section>';
+}
+function requestMatchDecision(phase){
+ if(!save)return;
+ const w=save.world;
+ if(phase==='regular'&&w.phase!=='regular')return;
+ if(phase==='playoffs'&&w.phase!=='playoffs')return;
+ let target=null;
+ if(phase==='regular'){
+  const matches=w.rounds[w.week]||[];
+  const myMatch=matches.find(m=>m.home===save.teamId||m.away===save.teamId);
+  if(myMatch)target=myMatch.home===save.teamId?myMatch.away:myMatch.home;
+ }else if(w.playoffs?.round===0){
+  const seed=w.playoffs.seed||[];
+  const pos=seed.indexOf(save.teamId);
+  if(pos!==-1)target=seed[pos===0?3:pos===3?0:pos===1?2:1];
+ }else if(w.playoffs?.round===1){
+  const games=w.playoffs.semis||[];
+  if(games.some(m=>m.winner===save.teamId))target=games.find(m=>m.winner!==save.teamId)?.winner;
+ }
+ if(!target||save.player.injury>0){
+  if(phase==='regular'){const r=simulateWeek();persist();render();if(r)showModal(resultModal(r,'JORNADA '+save.world.week));}
+  else{const r=simulatePlayoffRound();persist();render();if(r)showModal(resultModal(r.games?.find(x=>x.home===save.teamId||x.away===save.teamId)||null,r.stage));}
+  return;
+ }
+ CAREER.prepare(save,currentTeam(),club(target),phase);
+ persist();showModal(careerDecisionModal());
+}
+function chooseMatchDecision(index){
+ if(!save||!save.career?.pending)return;
+ const phase=save.career.pending.phase;
+ const impact=CAREER.resolve(save,index);
+ if(!impact)return;
+ let result=null,details='';
+ if(phase==='regular'){result=simulateWeek();details='JORNADA '+save.world.week;}
+ else{
+  const round=simulatePlayoffRound();
+  if(round){result=round.games?.find(x=>x.home===save.teamId||x.away===save.teamId)||null;details=round.stage;}
+ }
+ addNews(impact.success?'¡Buena decisión!':'Aprender también es parte del juego',impact.action+' · '+impact.day+'. '+impact.details,'spark');
+ persist();render();
+ if(result)showModal(resultModal(result,details));
+ else{closeModal();toast(impact.success?'¡Buena decisión!':'La siguiente jugada será mejor.');}
+}
+
 function exportSave(){const blob=new Blob([JSON.stringify(save,null,2)],{type:'application/json'}),url=URL.createObjectURL(blob),a=document.createElement('a');a.href=url;a.download=`WorldHoops_${save.player.name.replace(/[^a-z\d]/gi,'_')}_Temporada${save.season}.json`;document.body.appendChild(a);a.click();a.remove();URL.revokeObjectURL(url);toast('Partida exportada correctamente.');}
 async function importSave(file){try{if(!file)return;if(file.size>2e6)throw Error('Archivo demasiado grande');const parsed=JSON.parse(await file.text());if(parsed.version!==1||!parsed.player||!parsed.world||!league(parsed.leagueId)||!club(parsed.teamId)||!Array.isArray(parsed.history))throw Error('Partida no compatible');save=parsed;CAREER.init(save);ui.tab='home';ui.browseContinent=league(save.leagueId).continent;ui.browseLeague=save.leagueId;persist();render();toast('Partida importada.');}catch(e){toast(`No se pudo importar: ${e.message}`);}}
 document.addEventListener('submit',e=>{if(e.target.id==='career-form'){e.preventDefault();const form=new FormData(e.target);const fields=Object.fromEntries(form.entries());if(!fields.name||fields.name.trim().length<2)return toast('Escribe al menos 2 letras.');if(!league(fields.league)||!club(fields.team)||!club(fields.team).id.startsWith(fields.league+'-'))return toast('Selecciona un club válido.');createCareer(fields);}});
