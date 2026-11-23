@@ -48,3 +48,61 @@ body.modal-open{overflow:hidden}.modal-backdrop{position:fixed;inset:0;z-index:5
 /* League crests: legible small marks on the dark interface. */
 .league-badge{background:#f1f1f1;border-color:#d5dae2}
 .puerto-rico-federation-badge{display:block;width:155px;height:auto;max-width:100%;margin:9px 0 3px;padding:5px;border-radius:6px;background:#fff}
+
+/* Insignias de ligas: contraste y tamaño adaptados a marcas verticales/horizontales. */
+.league-badge--nba,
+.league-badge--gleague,
+.league-badge--cibacopa {
+  display:inline-flex;
+  align-items:center;
+  justify-content:center;
+  vertical-align:middle;
+  background:#fff;
+  border:1px solid #d7dee9;
+  border-radius:9px;
+  width:48px;
+  height:38px;
+  padding:3px 5px;
+  overflow:hidden;
+  flex:none;
+  color:#14202c;
+}
+.league-badge--nba img,
+.league-badge--gleague img,
+.league-badge--cibacopa img {
+  display:block;
+  width:100%;
+  height:100%;
+  max-width:100%;
+  max-height:100%;
+  object-fit:contain;
+}
+.league-badge--nba.lg,
+.league-badge--gleague.lg,
+.league-badge--cibacopa.lg {
+  width:180px;
+  height:95px;
+  padding:8px;
+  border-radius:12px;
+}
+.league-badge--nba:not(.lg) {width:40px;height:42px;}
+.league-badge--gleague:not(.lg) {width:53px;height:42px;}
+.league-badge--cibacopa:not(.lg) {width:58px;height:42px;}
+.league-badge--nba .badge-label,
+.league-badge--gleague .badge-label,
+.league-badge--cibacopa .badge-label,
+.league-badge .badge-label {display:none;}
+.league-badge.badge-image-failed .badge-label {
+  display:block;
+  font-weight:850;
+  font-size:9px;
+  line-height:1.2;
+  text-align:center;
+  letter-spacing:.15px;
+  overflow-wrap:anywhere;
+}
+.league-badge.badge-image-failed.lg .badge-label {font-size:18px;}
+.league-badge.badge-image-failed img {display:none!important;}
+@media(max-width:480px){
+ .league-badge--nba.lg,.league-badge--gleague.lg,.league-badge--cibacopa.lg{width:128px;height:68px;}
+}
