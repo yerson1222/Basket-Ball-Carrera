@@ -17,7 +17,7 @@ const pct=(v)=>`${(v*100).toFixed(1)}%`;
 const league=id=>DATA.leagues.find(x=>x.id===id);
 const continent=id=>DATA.continents.find(x=>x.id===id);
 const hash=s=>[...s].reduce((a,c)=>((a<<5)-a+c.charCodeAt(0))|0,0);
-const initialSave=()=>{try{const s=JSON.parse(localStorage.getItem(KEY));return s&&s.version===1&&s.player&&s.world?s:null;}catch{return null;}};
+const initialSave=()=>{try{const s=JSON.parse(localStorage.getItem(KEY));if(!s||s.version!==1||!s.player||!s.world)return null;if(s.leagueId==='lnbp'){s.leagueId='cibacopa';s.teamId='cibacopa-0';s.world=freshWorld('cibacopa');s.offers=[];s.salary=salaryEstimate('cibacopa',Math.round((s.player.skills.shooting+s.player.skills.playmaking+s.player.skills.defense+s.player.skills.athleticism)/4));s.news=Array.isArray(s.news)?s.news:[];s.news.unshift({title:'Liga mexicana actualizada',description:'La liga ficticia se sustituyó por CIBACOPA. Tu jugador y tu historial se conservaron; comienza un nuevo calendario.',type:'activity',season:s.season,week:0});localStorage.setItem(KEY,JSON.stringify(s));}return league(s.leagueId)&&club(s.teamId)?s:null;}catch{return null;}};
 let save=initialSave();
 const ui={tab:'home',browseContinent:save?league(save.leagueId).continent:'north',browseLeague:save?.leagueId||'nba',menu:false,modal:null};
 const iconMap={
