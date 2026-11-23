@@ -1,0 +1,39 @@
+/* World Hoops — Career Choices */
+.decision-backdrop{z-index:1200;align-items:center;justify-content:center;padding:18px;background:rgba(2,8,16,.82);backdrop-filter:blur(7px)}
+.decision-dialog{width:min(660px,100%);max-height:min(92vh,930px);overflow-y:auto;background:linear-gradient(155deg,#18293b,#0d1724 75%);border:1px solid #3f5864;border-radius:20px;padding:31px;box-shadow:0 30px 100px #0009}
+.decision-dialog h2{font-size:clamp(22px,3.6vw,30px);line-height:1.32;letter-spacing:-.7px;color:#f5f9fe;margin:18px 0}
+.decision-eyebrow{color:#c8fa5b;font-weight:800;letter-spacing:2px;font-size:10px}
+.decision-context{display:flex;align-items:center;gap:9px;flex-wrap:wrap;font-size:13px;font-weight:800;margin-top:12px;color:#e3f2fc}
+.decision-context span{color:#c8fa5b;letter-spacing:2px}
+.decision-mood{background:#213549;border:1px solid #3d586d;border-radius:12px;padding:13px 15px;margin:20px 0 12px}
+.decision-mood strong{display:block;font-size:13px;color:#c8fa5b}
+.decision-mood p{font-size:12px;color:#cbd9e4;margin:5px 0 0;line-height:1.55}
+.decision-help{font-size:12px;color:#b2c3d2;line-height:1.65}
+.decision-options{display:grid;gap:10px;margin:20px 0}
+.decision-option{background:#192a3d;border:1px solid #35516a;border-radius:12px;color:#f3f8ff;display:flex;align-items:center;gap:13px;text-align:left;width:100%;min-height:65px;padding:13px 16px;transition:.18s ease}
+.decision-option:hover{background:#26425a;border-color:#c8fa5b;transform:translateY(-1px)}
+.decision-option:focus-visible{outline:2px solid #c8fa5b;outline-offset:2px}
+.decision-option strong{font-weight:750;font-size:14px;line-height:1.4}
+.decision-option small{display:block;color:#b6c6d5;margin-left:auto;text-align:right;font-size:11px}
+.decision-num{font:900 18px/1 Inter,system-ui,sans-serif;color:#c8fa5b;min-width:28px}
+.decision-arrow{color:#c8fa5b;margin-left:auto;font-size:23px}
+.decision-dialog>.btn{margin-top:4px}
+.decision-result{border:1px solid #3b6448;border-radius:10px;background:#1a3b28;color:#eafee6;padding:12px;margin:10px 0;display:grid;gap:3px}
+.decision-result span{font-size:12px}
+.life-wallet{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:15px;margin-bottom:20px}
+.life-wallet>div{background:linear-gradient(130deg,#213833,#142a35);border:1px solid #476856;border-radius:16px;padding:21px;min-width:0}
+.life-wallet small{display:block;color:#bbd5cc;font-size:10px;font-weight:800;letter-spacing:1px}
+.life-wallet strong{display:block;color:#c8fa5b;font-size:clamp(23px,3vw,33px);margin:8px 0 5px;letter-spacing:-1px;overflow-wrap:anywhere}
+.life-wallet p{font-size:12px;color:#aec8c0;margin:0;line-height:1.5}
+.life-shop-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:13px}
+.life-item{display:flex;flex-direction:column;background:linear-gradient(145deg,#162739,#101e2e);border:1px solid #2d4054;border-radius:14px;padding:17px;min-width:0}
+.life-item-icon{color:#c8fa5b;display:grid;place-items:center;width:43px;height:43px;border-radius:11px;background:#c8fa5b1a;margin-bottom:13px}
+.life-item h3{margin:0 0 7px;font-size:14px;line-height:1.35}
+.life-item p{color:#a9bccd;font-size:12px;line-height:1.55;margin:0 0 17px;flex:1}
+.life-item-bottom{display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:8px}
+.life-item-bottom strong{font-size:14px;color:#c8fa5b}
+.life-item .btn{font-size:11px;padding:9px 11px}
+.life-history-row{display:flex;justify-content:space-between;gap:10px;padding:12px 0;border-bottom:1px solid #2b4054;font-size:13px}
+.life-history-row strong{color:#c8fa5b}
+@media(max-width:850px){.life-shop-grid{grid-template-columns:repeat(2,minmax(0,1fr))}}
+@media(max-width:540px){.life-shop-grid,.life-wallet{grid-template-columns:1fr}.decision-dialog{padding:19px}.decision-option{padding:11px}.decision-option small{display:block;margin:4px 0 0;text-align:left}.life-item{padding:15px}}
