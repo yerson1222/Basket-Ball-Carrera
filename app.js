@@ -221,10 +221,10 @@ function renderMarket(){const p=save.player,l=league(save.leagueId),offseason=sa
  <div class="market-metrics"><div class="market-metric"><small>CLUB ACTUAL</small><div>${teamLogo(currentTeam(),'sm')}<strong>${esc(currentTeam().name)}</strong></div></div><div class="market-metric"><small>SALARIO / AÑO</small><strong>${money(save.salary)}</strong></div><div class="market-metric"><small>VALORACIÓN</small><strong>${playerOverall()} OVR</strong></div><div class="market-metric"><small>POPULARIDAD</small><strong>${Math.round(save.reputation)} / 100</strong></div></div>
  ${offseason?`<div class="section-head section-outside"><div><div class="eyebrow">MERCADO INTERNACIONAL · ${save.year}</div><h2>${save.offers.length} ofertas sobre la mesa</h2></div></div><div class="offers-grid">${save.offers.map(offerCard).join('')||'<div class="empty-state">No hay ofertas. Puedes renovar.</div>'}</div><section class="panel renew-panel"><div><div class="eyebrow">CONTINÚA TU HISTORIA</div><h2>¿Prefieres quedarte?</h2><p>Renueva automáticamente por una temporada con un aumento salarial del 8%.</p></div>${actionButton('Renovar con mi club '+ico('arrow',17),'stay','outline')}</section>`:`<section class="panel upcoming-market"><div class="lock-symbol">${ico('lock',27)}</div><div><h2>Las ofertas se desbloquean al final de temporada</h2><p>Juega las ${save.world.rounds.length} jornadas y los playoffs. Tu rendimiento influye en tu reputación y tu siguiente contrato.</p></div>${actionButton('Ir a partidos '+ico('arrow',17),'go-match','outline')}</section><div class="section-head section-outside"><div><div class="eyebrow">DESTINOS POTENCIALES</div><h2>El mundo te espera</h2></div></div><div class="scout-grid">${DATA.continents.filter(x=>x.id!==l.continent).map(c=>`<div class="scout"><div class="scout-code" style="color:${c.accent}">${c.symbol}</div><b>${c.name}</b><small>${DATA.leagues.filter(x=>x.continent===c.id).length} ligas para explorar</small></div>`).join('')}</div>`}`;}
 function skillBar(k){const v=save.player.skills[k];return `<div class="skill-row"><div class="skill-label"><b>${skillName(k)}</b><span>${v}</span></div><div class="skill-track"><div style="width:${v}%"></div></div></div>`;}
-function renderStats(){const p=save.player,s=seasonStats(),w=save.world,available=w.phase==='regular'&&w.trainingWeek!==w.week&&p.injury===0&&p.energy>=20;return `${pageTitle('Mi jugador','Entrena, mejora tus atributos y conviértete en una estrella mundial.')}
+function renderStats(){const p=save.player,s=seasonStats(),w=save.world,available=CAREER.isTrainingDue(save);return `${pageTitle('Mi jugador','Entrena, mejora tus atributos y conviértete en una estrella mundial.')}
  <div class="player-header"><div class="player-id"><div class="profile-avatar">${esc(avatar(p.name))}<span>${p.position}</span></div><div><div class="eyebrow">CARRERA PROFESIONAL</div><h2>${esc(p.name)}</h2><p>${esc(p.country)} · ${p.age} años · ${DATA.positions.find(x=>x.id===p.position)?.name} · ${DATA.styles.find(x=>x.id===p.style)?.name}</p><div class="player-chips">${statusPill(league(save.leagueId).name)}${statusPill(`${save.season}ª temporada`,'lime')}${p.injury?statusPill(`Lesión: ${p.injury} partido(s)`,'loss'):statusPill('Disponible','win')}</div></div></div><div class="big-ovr"><small>VALORACIÓN GENERAL</small><strong>${playerOverall()}</strong><span>OVR</span></div></div>
  <div class="columns columns-main"><div class="col-stack"><section class="panel"><div class="section-head"><div><div class="eyebrow">MI POTENCIAL</div><h2>Atributos del jugador</h2></div>${statusPill('MÁX. 99')}</div><div class="skills-grid">${Object.keys(p.skills).map(skillBar).join('')}</div><div class="fitness"><div><b>${ico('bolt',17)} Energía</b><span>${p.energy}%</span></div><div class="fitness-track"><div style="width:${p.energy}%"></div></div><p>El entrenamiento gasta energía. Jugar partidos permite recuperarla.</p></div></section>
- <section class="panel"><div class="section-head"><div><div class="eyebrow">EL TRABAJO DIARIO</div><h2>Centro de entrenamiento</h2></div>${available?statusPill('1 SESIÓN DISPONIBLE','lime'):statusPill(w.phase==='offseason'?'FIN DE TEMPORADA':p.injury?'LESIONADO':'PRÓXIMA JORNADA')}</div><p class="muted">Elige una especialidad y luego una sesión intensa, técnica o de recuperación. Una sesión por jornada.</p><div class="training-grid">${Object.keys(p.skills).map(k=>`<button class="training-btn" data-action="train" data-skill="${k}" ${available?'':'disabled'}><span>${ico(k==='shooting'?'target':k==='playmaking'?'activity':k==='defense'?'shield':'bolt',22)}</span><b>${skillName(k)}</b><small>MEJORAR +1–2</small>${ico('plus',16)}</button>`).join('')}</div></section></div>
+ <section class="panel"><div class="section-head"><div><div class="eyebrow">EL TRABAJO DIARIO</div><h2>Centro de entrenamiento</h2></div>${available?statusPill('1 SESIÓN DISPONIBLE','lime'):statusPill(w.phase==='offseason'?'FIN DE TEMPORADA':p.injury?'LESIONADO':'PRÓXIMA JORNADA')}</div><p class='muted'>Cada semana recibes tres cartas de entrenamiento. Solo puedes elegir una. Algunas cartas mejoran varios atributos y otras pueden restarte puntos.</p><div class='wh-weekly-training'>${available?actionButton('Escoger entrenamiento semanal','train','primary'):statusPill(p.injury?'LESIONADO':'ENTRENAMIENTO HECHO')}<small>Semana ${w.week+1} · 150 cartas posibles · cinco rarezas</small></div></div></section></div>
  <div class="col-stack"><section class="panel"><div class="section-head"><div><div class="eyebrow">TEMPORADA ${save.year}</div><h2>Mi rendimiento</h2></div></div><div class="stat-quad">${[['PTS',s.ppg.toFixed(1)],['REB',s.rpg.toFixed(1)],['AST',s.apg.toFixed(1)],['ROB',s.spg.toFixed(1)],['TAP',s.bpg.toFixed(1)],['FG%',pct(s.fg)]].map(x=>`<div><strong>${x[1]}</strong><small>${x[0]}</small></div>`).join('')}</div><div class="section-head section-sub"><h3>Últimos partidos</h3></div>${plotGames(allGames())}</section><section class="panel"><div class="section-head"><div><div class="eyebrow">PROGRESO DEL JUGADOR</div><h2>Perfil de carrera</h2></div></div><div class="profile-details">${[['Nivel global',`${playerOverall()} OVR`],['Experiencia acumulada',`${fmt(p.xp)} XP`],['Reputación',`${Math.round(save.reputation)} / 100`],['Seguidores',fmt(save.fans)],['Dinero ganado',money(save.earnings)],['Salario actual',money(save.salary)]].map(x=>`<div><span>${x[0]}</span><b>${x[1]}</b></div>`).join('')}</div></section></div></div>`;}
 function renderLegacy(){const totals=careerTotals(),hist=save.history||[],awards=save.awards||[];return `${pageTitle('Mi legado','Tus récords, trofeos y temporadas quedan aquí para siempre.')}
  <div class="legacy-banner"><div class="legacy-symbol">${ico('trophy',44)}</div><div><div class="eyebrow">HALL OF FAME</div><h2>Las leyendas no nacen. Se construyen.</h2><p>${esc(save.player.name)} · ${save.season}ª temporada profesional</p></div></div>
@@ -244,7 +244,7 @@ function runSimulation(n){requestMatchDecision('regular');}
 function careerDecisionModal(){
  const p=CAREER.init(save).pending;
  if(!p)return '';
- const options=p.options.map((o,i)=>'<button type="button" class="decision-option" data-action="decide-game" data-choice="'+i+'"><span class="decision-num">0'+(i+1)+'</span><strong>'+esc(o.label)+'</strong><span class="decision-arrow">→</span></button>').join('');
+ const options=p.options.map((o,i)=>'<button type="button" class="decision-option" data-action="decide-game" data-choice="'+i+'"><span class="decision-num">0'+(i+1)+'</span><strong>'+esc(o.label)+'</strong><small>'+CAREER.estimate(save,o)+'% éxito</small><span class="decision-arrow">→</span></button>').join('');
  return '<div class="modal-backdrop decision-backdrop"><div class="modal-card decision-dialog" role="dialog" aria-modal="true" aria-label="Decisión del partido">'+
  '<div class="decision-eyebrow">WORLD HOOPS · TU PRÓXIMA DECISIÓN</div>'+
  '<div class="decision-context">'+esc(p.club)+' <span>VS</span> '+esc(p.rival)+'</div>'+
@@ -283,6 +283,9 @@ function requestMatchDecision(phase){
  if(!save)return;
  const w=save.world;
  if(phase==='regular'&&w.phase!=='regular')return;
+ if(phase==='regular'&&CAREER.isTrainingDue(save)){
+  CAREER.offerTraining(save);persist();showModal(weeklyTrainingModal());return;
+ }
  if(phase==='playoffs'&&w.phase!=='playoffs')return;
  let target=null;
  if(phase==='regular'){
@@ -301,6 +304,12 @@ function requestMatchDecision(phase){
   if(phase==='regular'){const r=simulateWeek();persist();render();if(r)showModal(resultModal(r,'JORNADA '+save.world.week));}
   else{const r=simulatePlayoffRound();persist();render();if(r)showModal(resultModal(r.games?.find(x=>x.home===save.teamId||x.away===save.teamId)||null,r.stage));}
   return;
+ }
+ const career=CAREER.init(save);
+ career.pregamePhase=phase;career.pregameOpponent=target;
+ if(CAREER.needsPregame(save,phase)){
+  CAREER.preparePregame(save,currentTeam(),club(target),phase);
+  persist();showModal(pregameEventModal());return;
  }
  CAREER.prepare(save,currentTeam(),club(target),phase);
  persist();showModal(careerDecisionModal());
@@ -339,8 +348,10 @@ document.addEventListener('click',e=>{const el=e.target.closest('[data-action]')
  if(act==='sim-playoffs'){requestMatchDecision('playoffs');return;}
  if(act==='continent'){ui.browseContinent=el.dataset.continent;ui.browseLeague=DATA.leagues.find(l=>l.continent===ui.browseContinent)?.id||save.leagueId;render();return;}
  if(act==='choose-league'){ui.browseLeague=el.dataset.league;render();return;}
- if(act==='train'){train(el.dataset.skill);return;}
- if(act==='training-choice'){finishTraining(el.dataset.skill,el.dataset.method);return;}
+ if(act==='train'){showWeeklyTraining();return;}
+ if(act==='training-card'){pickTrainingCard(el.dataset.card);return;}
+ if(act==='training-rest'){restTrainingWeek();return;}
+ if(act==='pregame-choice'){choosePregameEvent(Number(el.dataset.choice));return;}
  if(act==='decide-game'){chooseMatchDecision(Number(el.dataset.choice));return;}
  if(act==='go-life'){ui.tab='life';render();window.scrollTo(0,0);return;}
  if(act==='buy-life'){
