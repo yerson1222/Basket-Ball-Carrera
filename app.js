@@ -163,15 +163,18 @@ function finalizeSeason(){const w=save.world,p=save.player,stats=seasonStats(),c
 }
 function generateOffers(){const p=save.player,ov=playerOverall(),current=league(save.leagueId);const pop=CAREER.initWorld(save).popularity;const eligibility=clamp((pop-35)*.22,0,15);const eligible=DATA.leagues.filter(l=>l.id!==save.leagueId&&l.quality<=Math.max(ov+16+eligibility,current.quality+11+eligibility*.7));const combos=[];
  const bands=[...eligible].sort((a,b)=>Math.abs(a.quality-(current.quality+3))-Math.abs(b.quality-(current.quality+3)));
- const pool=[...bands.slice(0,9).sort(()=>Math.random()-.5).slice(0,2),pick(eligible.filter(l=>l.continent!==current.continent).length?eligible.filter(l=>l.continent!==current.continent):eligible),pick(eligible)];
+ const extra=Math.min(3,CAREER.offersBonus(save));
+  const pool=[...bands.slice(0,Math.min(bands.length,10+extra)).sort(()=>Math.random()-.5).slice(0,2+extra),
+  pick(eligible.filter(l=>l.continent!==current.continent).length?eligible.filter(l=>l.continent!==current.continent):eligible),pick(eligible)];
  for(const l of pool){if(!l||combos.some(c=>c.leagueId===l.id))continue;const t=pick(clubList(l.id));let salary=salaryEstimate(l.id,ov)*(1+rand(.03,.2))*CAREER.marketFactor(save);salary=Math.round(salary/1000)*1000;combos.push({id:`offer-${l.id}`,leagueId:l.id,teamId:t.id,salary,years:1,role:ov>=l.quality?'Titular':'Rotación'});}
  if(save.leagueId==='gleague'){const my=club(save.teamId),s=seasonStats();if(my?.affiliate&&(ov>=73||s.ppg>=16||save.reputation>=47||CAREER.initWorld(save).popularity>=65)){const target=club(my.affiliate);combos.unshift({id:'offer-nba-callup',leagueId:'nba',teamId:target.id,salary:Math.max(900000,salaryEstimate('nba',ov)),years:1,role:'Ascenso a la NBA'});addNews('¡Oportunidad NBA!',`${target.name}, franquicia asociada a ${my.name}, quiere ficharte para la próxima temporada.`,'transfer');}}return combos.filter((c,i)=>combos.findIndex(o=>o.teamId===c.teamId)===i).slice(0,Math.min(7,4+CAREER.offersBonus(save)));
 }
 function nextSeason(offer){if(save.world.phase!=='offseason')return;
+ if(!offer&&CAREER.initWorld(save).coachTrust<23){toast('El club no quiere renovar: acepta otra oferta.');return;}
  const prev=currentTeam().name,wasMoved=offer&&offer.teamId!==save.teamId;
  save.year++;save.season++;save.player.age++;save.player.energy=100;save.player.injury=0;save.player.xp+=20;
  if(offer){save.teamId=offer.teamId;save.leagueId=offer.leagueId;save.salary=offer.salary;}
- else if(CAREER.initWorld(save).coachTrust<23){toast('El club no renueva tu contrato. Debes escoger otra oferta.');return;}
+ 
  else{save.salary=Math.round(save.salary*1.08/1000)*1000;}
  save.world=freshWorld(save.leagueId);save.offers=[];CAREER.updateSeason(save,wasMoved);
  addNews(wasMoved?'¡FICHAJE CONFIRMADO!':'Contrato renovado',wasMoved?`${save.player.name} deja ${prev} y ficha por ${shortName(save.teamId)}. Nuevo salario: ${money(save.salary)}.`:`${save.player.name} seguirá una temporada más en ${shortName(save.teamId)}.`,'transfer');
