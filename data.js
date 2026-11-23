@@ -87,3 +87,22 @@ window.WH_DATA.leagueLogoCoverage.bsn={found:12,total:12};
 
 /* BSN accurate 2026 names */
 window.WH_DATA.realTeams.bsn.forEach((t,i)=>t.name=["Atléticos de San Germán","Cangrejeros de Santurce","Capitanes de Arecibo","Criollos de Caguas","Gigantes de Carolina/Canóvanas","Indios de Mayagüez","Leones de Ponce","Mets de Guaynabo","Osos de Manatí","Piratas de Quebradillas","Santeros de Aguada","Vaqueros de Bayamón"][i]);
+
+/* World Hoops - ligas locales NBA G League y Federacion PR */
+window.WH_DATA.leagues.find(l=>l.id==='nba').logo='assets/leagues/nba.png';
+window.WH_DATA.leagues.find(l=>l.id==='gleague').logo='assets/leagues/gleague.png';
+window.WH_DATA.leagues.find(l=>l.id==='bsn').federationLogo='assets/leagues/federacion_puerto_rico.png';
+window.WH_DATA.realTeams.bsn[0].logo='assets/teams/bsn/atleticos_san_german.png';
+window.WH_DATA.realTeams.bsn[1].logo='assets/teams/bsn/cangrejeros_santurce.png';
+window.WH_DATA.realTeams.bsn[2].logo='assets/teams/bsn/capitanes_arecibo.png';
+window.WH_DATA.realTeams.bsn[3].logo='assets/teams/bsn/criollos_caguas.png';
+window.WH_DATA.realTeams.bsn[4].logo='assets/teams/bsn/gigantes_carolina.png';
+window.WH_DATA.realTeams.bsn[5].logo='assets/teams/bsn/indios_mayaguez.png';
+window.WH_DATA.realTeams.bsn[6].logo='assets/teams/bsn/leones_ponce.png';
+window.WH_DATA.realTeams.bsn[7].logo='assets/teams/bsn/mets_guaynabo.png';
+window.WH_DATA.realTeams.bsn[8].logo='assets/teams/bsn/osos_manati.png';
+window.WH_DATA.realTeams.bsn[9].logo='assets/teams/bsn/piratas_quebradillas.jpg';
+window.WH_DATA.realTeams.bsn[10].logo='assets/teams/bsn/santeros_aguada.png';
+window.WH_DATA.realTeams.bsn[11].logo='assets/teams/bsn/vaqueros_bayamon.png';
+
+/* End World Hoops local league logos */
