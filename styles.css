@@ -44,3 +44,7 @@ body.modal-open{overflow:hidden}.modal-backdrop{position:fixed;inset:0;z-index:5
 .league-option .flag{display:inline-flex;align-items:center;justify-content:center;min-width:33px}
 .league-info-top .flag-large{display:inline-flex;align-items:center;justify-content:center;flex:none;min-width:61px;min-height:61px}
 @media(max-width:480px){.league-badge.lg{width:82px;height:47px}.league-info-top .flag-large{min-width:48px;min-height:48px}}
+
+/* League crests: legible small marks on the dark interface. */
+.league-badge{background:#f1f1f1;border-color:#d5dae2}
+.puerto-rico-federation-badge{display:block;width:155px;height:auto;max-width:100%;margin:9px 0 3px;padding:5px;border-radius:6px;background:#fff}
