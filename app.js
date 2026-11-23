@@ -249,6 +249,7 @@ function careerDecisionModal(){
  '<div class="decision-eyebrow">WORLD HOOPS · TU PRÓXIMA DECISIÓN</div>'+
  '<div class="decision-context">'+esc(p.club)+' <span>VS</span> '+esc(p.rival)+'</div>'+
  '<div class="decision-mood"><strong>'+esc(p.day)+'</strong><p>'+esc(p.dayDesc)+'</p></div>'+
+ ((p.teammate||p.opponentStar)?'<div class="wh-real-stars">'+(p.teammate?'<span>COMPAÑERO: <strong>'+esc(p.teammate)+'</strong></span>':'')+(p.opponentStar?' <span>RIVAL: <strong>'+esc(p.opponentStar)+'</strong></span>':'')+'</div>':'')+
  '<h2>'+esc(p.prompt)+'</h2><p class="decision-help">Tus estadísticas, la energía y la preparación influyen en el resultado.</p>'+
  '<div class="decision-options">'+options+'</div>'+
  '<button type="button" class="btn ghost" data-action="close-modal">Volver</button></div></div>';
@@ -383,6 +384,7 @@ function pregameEventModal(){
  return '<div class="modal-backdrop decision-backdrop"><div class="modal-card decision-dialog" role="dialog" aria-modal="true" aria-label="Evento antes del partido">'+
  '<div class="decision-eyebrow">ANTES DEL PARTIDO · EVENTO ALEATORIO</div>'+
  '<div class="decision-context">'+esc(e.team)+' <span>VS</span> '+esc(e.rival)+'</div>'+
+ ((e.teammate||e.opponentStar)?'<div class="wh-real-stars">'+(e.teammate?'<span>COMPAÑERO: <strong>'+esc(e.teammate)+'</strong></span>':'')+(e.opponentStar?' <span>RIVAL: <strong>'+esc(e.opponentStar)+'</strong></span>':'')+'</div>':'')+
  '<h2>'+esc(e.text)+'</h2>'+
  '<p class="decision-help">Tu respuesta puede ayudar o perjudicar tu rendimiento. Tus atributos influyen en el resultado.</p>'+
  '<div class="decision-options">'+buttons+'</div>'+
