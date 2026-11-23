@@ -145,6 +145,17 @@ function simulateWeek(){if(!save||save.world.phase!=='regular')return null;
  const w=save.world,week=w.week+1,fixtures=w.rounds[w.week];let mine;
  fixtures.forEach(m=>{const result=playFixture(m,'regular',week);w.results.push(result);const h=w.table[m.home],a=w.table[m.away];h.pf+=result.hs;h.pa+=result.as;a.pf+=result.as;a.pa+=result.hs; if(result.hs>result.as){h.w++;a.l++;h.streak=h.streak>0?h.streak+1:1;a.streak=a.streak<0?a.streak-1:-1;}else{a.w++;h.l++;a.streak=a.streak>0?a.streak+1:1;h.streak=h.streak<0?h.streak-1:-1;} if(m.home===save.teamId||m.away===save.teamId)mine=result;});
  w.week++;if(mine){const won=mine.winner===save.teamId;addNews(won?'Victoria en la jornada':'Derrota en la jornada',`${shortName(save.teamId)} ${mine.home===save.teamId?mine.hs:mine.as} - ${mine.home===save.teamId?mine.as:mine.hs} ${shortName(mine.home===save.teamId?mine.away:mine.home)}.` ,won?'check':'activity');}
+ // El club puede rescindir el contrato tras un tramo de rendimiento muy bajo.
+ const clubStatus=CAREER.initWorld(save);
+ if(clubStatus.coachTrust<=10&&w.playerGames.length>=8&&w.week<w.rounds.length){
+  clubStatus.released=true;clubStatus.sackedCount=(clubStatus.sackedCount||0)+1;
+  const stats=seasonStats(),teamRecord=w.table[save.teamId];
+  save.history.unshift({year:save.year,season:save.season,age:save.player.age,team:currentTeam().name,league:league(save.leagueId).name,leagueId:save.leagueId,teamId:save.teamId,rank:myRank(),wins:teamRecord.w,losses:teamRecord.l,champion:false,stats:{gp:stats.gp,points:stats.total,ppg:stats.ppg,rpg:stats.rpg,apg:stats.apg},awards:[],salary:save.salary,terminated:true});
+  save.earnings+=Math.round(save.salary*w.week/Math.max(1,w.rounds.length));
+  w.phase='offseason';save.offers=generateOffers();
+  addNews('Contrato rescindido',`${currentTeam().name} ha terminado tu contrato por falta de rendimiento. Debes elegir otro destino para continuar tu carrera.`,'warning');
+  return mine;
+ }
  if(w.week>=w.rounds.length){w.phase='playoffs';addNews('¡Termina la liga regular!',`Finalizas en el puesto #${myRank()}. Los cuatro primeros disputarán los playoffs.`,'trophy');w.playoffs={round:0,seed:tableRows().slice(0,4).map(x=>x.id),semis:[],final:null};}
  return mine;
 }
