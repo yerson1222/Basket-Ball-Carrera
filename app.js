@@ -331,6 +331,72 @@ function chooseMatchDecision(index){
  else{closeModal();toast(impact.success?'¡Buena decisión!':'La siguiente jugada será mejor.');}
 }
 
+
+function weeklyTrainingModal(){
+ const options=CAREER.offerTraining(save).map((c,i)=>
+  '<button type="button" class="wh-training-card '+esc(c.rarity)+'" data-action="training-card" data-card="'+esc(c.id)+'">'+
+  '<div class="wh-card-head"><b>0'+(i+1)+'</b><span>'+esc(c.rarityLabel)+'</span></div>'+
+  '<h3>'+esc(c.title)+'</h3><p>'+esc(c.desc)+'</p>'+
+  '<div class="wh-card-bonuses"><strong>+'+c.potential+' '+esc(skillName(c.focus))+'</strong><small>Posible extra: '+esc(skillName(c.support))+'</small></div>'+
+  '<div class="wh-card-cost"><span>Riesgo base '+c.risk+'%</span><span>Energía '+c.energy+'</span></div></button>'
+ ).join('');
+ return '<div class="modal-backdrop decision-backdrop"><div class="modal-card decision-dialog wh-training-dialog" role="dialog" aria-modal="true" aria-label="Cartas semanales">'+
+ '<div class="decision-eyebrow">SEMANA '+(save.world.week+1)+' · CENTRO DE ENTRENAMIENTO</div>'+
+ '<h2>Elige tu carta de entrenamiento</h2>'+
+ '<p class="decision-help">Tres cartas aleatorias. Cinco rarezas con recompensas y riesgos diferentes. Escoges una sola por semana.</p>'+
+ '<div class="wh-card-grid">'+options+'</div>'+
+ '<button type="button" class="btn outline" data-action="training-rest">Descansar esta semana (+energía)</button>'+
+ '<button type="button" class="btn ghost" data-action="close-modal">Volver</button></div></div>';
+}
+function trainingResultModal(out){
+ const diffs=Object.entries(out.deltas||{}).filter(([,n])=>n).map(([k,n])=>
+ '<span class="wh-attribute-change '+(n<0?'negative':'positive')+'">'+esc(skillName(k))+' '+(n>0?'+':'')+n+'</span>').join('')||'<span class="wh-attribute-change">Sin cambios de atributos</span>';
+ return '<div class="modal-backdrop decision-backdrop"><div class="modal-card decision-dialog" role="dialog" aria-modal="true" aria-label="Resultado de entrenamiento">'+
+ '<div class="decision-eyebrow">'+esc(out.card.rarityLabel||'DESCANSO')+'</div>'+
+ '<h2>'+esc(out.success?'Entrenamiento completado':'Una sesión complicada')+'</h2>'+
+ '<p>'+esc(out.card.title)+'</p><div class="wh-training-deltas">'+diffs+'</div>'+
+ '<p class="decision-help">Energía '+(out.energy>=0?'+':'')+out.energy+' · +'+out.xp+' XP'+(out.injured?' · Molestia física':'')+'</p>'+
+ '<button type="button" class="btn primary" data-action="close-modal">Continuar</button></div></div>';
+}
+function showWeeklyTraining(){
+ if(!save||!CAREER.isTrainingDue(save))return toast('Esta semana ya entrenaste.');
+ CAREER.offerTraining(save);persist();showModal(weeklyTrainingModal());
+}
+function pickTrainingCard(id){
+ const out=CAREER.trainCard(save,id);
+ if(!out?.ok)return toast(out?.message||'Esta carta ya no está disponible.');
+ addNews(out.success?'Semana de entrenamiento completada':'Entrenamiento difícil',
+  out.card.title+' · '+(out.success?'Subiste tus atributos.':'La sesión fue más dura de lo esperado.'),'bolt');
+ persist();render();showModal(trainingResultModal(out));
+}
+function restTrainingWeek(){
+ const out=CAREER.restTraining(save);
+ if(!out?.ok)return toast(out?.message||'No se puede descansar ahora.');
+ addNews('Día de recuperación','Elegiste cuidar tu cuerpo para el próximo partido.','bolt');
+ persist();render();showModal(trainingResultModal(out));
+}
+function pregameEventModal(){
+ const e=save.career?.pregame;if(!e)return '';
+ const buttons=e.options.map((o,i)=>
+ '<button type="button" class="decision-option" data-action="pregame-choice" data-choice="'+i+'">'+
+ '<span class="decision-num">0'+(i+1)+'</span><strong>'+esc(o.label)+'</strong><small>'+esc(skillName(o.stat))+'</small></button>').join('');
+ return '<div class="modal-backdrop decision-backdrop"><div class="modal-card decision-dialog" role="dialog" aria-modal="true" aria-label="Evento antes del partido">'+
+ '<div class="decision-eyebrow">ANTES DEL PARTIDO · EVENTO ALEATORIO</div>'+
+ '<div class="decision-context">'+esc(e.team)+' <span>VS</span> '+esc(e.rival)+'</div>'+
+ '<h2>'+esc(e.text)+'</h2>'+
+ '<p class="decision-help">Tu respuesta puede ayudar o perjudicar tu rendimiento. Tus atributos influyen en el resultado.</p>'+
+ '<div class="decision-options">'+buttons+'</div>'+
+ '<button type="button" class="btn ghost" data-action="close-modal">Volver</button></div></div>';
+}
+function choosePregameEvent(index){
+ const c=save?.career;if(!c?.pregame)return;
+ const phase=c.pregamePhase||'regular',id=c.pregameOpponent;
+ const out=CAREER.resolvePregame(save,index);
+ if(!out)return;
+ CAREER.prepare(save,currentTeam(),club(id),phase);
+ persist();showModal(careerDecisionModal());
+}
+
 function exportSave(){const blob=new Blob([JSON.stringify(save,null,2)],{type:'application/json'}),url=URL.createObjectURL(blob),a=document.createElement('a');a.href=url;a.download=`WorldHoops_${save.player.name.replace(/[^a-z\d]/gi,'_')}_Temporada${save.season}.json`;document.body.appendChild(a);a.click();a.remove();URL.revokeObjectURL(url);toast('Partida exportada correctamente.');}
 async function importSave(file){try{if(!file)return;if(file.size>2e6)throw Error('Archivo demasiado grande');const parsed=JSON.parse(await file.text());if(parsed.version!==1||!parsed.player||!parsed.world||!league(parsed.leagueId)||!club(parsed.teamId)||!Array.isArray(parsed.history))throw Error('Partida no compatible');save=parsed;CAREER.init(save);ui.tab='home';ui.browseContinent=league(save.leagueId).continent;ui.browseLeague=save.leagueId;persist();render();toast('Partida importada.');}catch(e){toast(`No se pudo importar: ${e.message}`);}}
 document.addEventListener('submit',e=>{if(e.target.id==='career-form'){e.preventDefault();const form=new FormData(e.target);const fields=Object.fromEntries(form.entries());if(!fields.name||fields.name.trim().length<2)return toast('Escribe al menos 2 letras.');if(!league(fields.league)||!club(fields.team)||!club(fields.team).id.startsWith(fields.league+'-'))return toast('Selecciona un club válido.');createCareer(fields);}});
