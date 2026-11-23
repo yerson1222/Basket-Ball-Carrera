@@ -99,7 +99,11 @@ function marketFactor(s){
 }
 function offersBonus(s){const c=career(s);return Math.floor(Math.max(0,c.popularity-35)/18);}
 function updateSeason(s,moved){
- const c=career(s);c.released=false;c.contractNotice=false;c.coachTrust=Math.max(34,Math.min(82,c.coachTrust+(moved?12:4)));
+ const c=career(s);c.released=false;c.contractNotice=false;
+ const skills=s.player.skills,ov=(skills.shooting+skills.playmaking+skills.defense+skills.athleticism)/4;
+ const leagueQuality=window.WH_DATA?.leagues?.find(x=>x.id===s.leagueId)?.quality||80;
+ c.coachTrust=moved?Math.max(43,Math.min(79,Math.round(54+(ov-leagueQuality)*.43))):
+  Math.max(34,Math.min(82,c.coachTrust+4));
  c.roleRisk=0;
 }
 Object.assign(W,{nbaPlayers:baseRoster,worldEvents:EXTRA,worldTeamPower:TEAM_POWER,teamStrength,playerRating,initWorld:career,roleStatus:status,recordGame,marketFactor,offersBonus,updateSeason});
