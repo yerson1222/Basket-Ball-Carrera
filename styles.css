@@ -22,3 +22,15 @@ body.modal-open{overflow:hidden}.modal-backdrop{position:fixed;inset:0;z-index:5
 @media(max-width:375px){.hero-name{font-size:36px}.kpi strong{font-size:22px}.bracket{grid-template-columns:1fr}.stat-quad strong{font-size:21px}.market-metric>strong{font-size:13px}.player-id h2{font-size:18px}.big-ovr strong{font-size:36px}.hero-actions .btn{white-space:normal}.match-actions .btn{min-width:100%}.landing h1{font-size:62px}}
 @media(prefers-reduced-motion:reduce){*,*:before,*:after{animation-duration:.01ms!important;transition-duration:.01ms!important;scroll-behavior:auto!important}}
 .world-modal{max-width:750px}.world-modal-list{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:18px;margin-bottom:24px}.world-modal-list section{border:1px solid #304455;background:#172736;padding:16px;border-radius:11px}.world-modal-list h3{margin:0 0 12px;font-size:13px}.world-modal-list h3 span{font-size:12px;margin-right:6px}.world-modal-list section>div{display:grid;gap:10px}.world-modal-list section>div>div{display:flex;align-items:start;justify-content:space-between;gap:8px;color:#c3d6df;font-size:11px}.world-modal-list section>div>div small{text-align:right;color:#8299aa;font-size:9px;white-space:nowrap}@media(max-width:600px){.world-modal-list{grid-template-columns:1fr}.world-modal-list section{padding:12px}.world-modal-list section>div>div small{white-space:normal}}
+
+/* World Hoops 2.0 — escudos NBA / G League */
+.team-logo.real-logo{overflow:hidden; background:linear-gradient(145deg,color-mix(in srgb,var(--team-color) 13%,#111c2b),#1a2736);padding:3px;}
+.team-logo.real-logo img{width:100%;height:100%;object-fit:contain;display:block;}
+.team-logo.real-logo.tiny{padding:1px;}
+.team-logo.real-logo.sm{padding:2px;}
+.team-logo.real-logo.lg,.team-logo.real-logo.xl{padding:5px;}
+.team-logo.empty{opacity:.5;}
+.fixture.bye{opacity:.6;min-height:60px;}
+.fixture.bye .fixture-info{padding-left:12px;}
+/* Large NBA and G League directories */
+.club-directory{max-height:680px;overflow-y:auto;}
