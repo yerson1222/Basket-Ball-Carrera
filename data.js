@@ -78,3 +78,9 @@ window.WH_DATA.leagues.find(l=>l.id==="philippines").name="Philippine Basketball
 window.WH_DATA.leagues.find(l=>l.id==="newzealand").name="Sal's NBL (Nueva Zelanda)";
 window.WH_DATA.leagueLogoCoverage = window.WH_DATA.leagueLogoCoverage || {};
 for (const id of ["arg","nbb","uru","chi","col","france","italy","germany","japan","china","korea","philippines","lebanon","egypt","angola","nigeria","senegal","australia","newzealand"]) window.WH_DATA.leagueLogoCoverage[id]={found:0,total:window.WH_DATA.realTeams[id].length};
+
+/* BSN Puerto Rico 2026 — emblemas de los 12 clubes y logo de la liga. */
+window.WH_DATA.realTeams.bsn.forEach((t,i)=>{t.logo=["https://scoutbasketball.com/img/teams/images/atleticos-de-san-german_1779432652.png","https://r2.thesportsdb.com/images/media/team/badge/r6sbpa1651517034.png","https://r2.thesportsdb.com/images/media/team/badge/pgs8z31737312622.png","https://criollosbsn.com/images/brand/Escudo.webp","https://cdn.shopify.com/s/files/1/0616/8494/0975/files/LOGO_GC-01.png?height=628&pad_color=160606&v=1650256979&width=1200","https://storage.googleapis.com/scoutbasketball/teams/images/Indios-De-Mayaguez_1719336138.png","https://leonesponcebsn.com/wp-content/uploads/2018/05/Leones-logo-web-600x600-2.png","https://r2.thesportsdb.com/images/media/team/badge/1ivky01686763941.png","https://r2.thesportsdb.com/images/media/team/badge/ignizl1697036258.png","https://pbs.twimg.com/profile_images/1484926903928729602/HDaSZSec_400x400.jpg","https://cdn.bebasket.fr/resources/images/team/santeros-de-aguada-logo-2025-1f003353-536c-6220-ae31-cbb3fe5db96c.jpg","https://scoutbasketball.com/img/teams/images/Vaqueros-De-Bayamon_1751814144.png"][i]});
+window.WH_DATA.leagues.find(l=>l.id==='bsn').name='Baloncesto Superior Nacional (BSN)';
+window.WH_DATA.leagues.find(l=>l.id==='bsn').logo="https://pbs.twimg.com/profile_images/2032990110086500352/CYDvcvEW_400x400.jpg";
+window.WH_DATA.leagueLogoCoverage.bsn={found:12,total:12};
