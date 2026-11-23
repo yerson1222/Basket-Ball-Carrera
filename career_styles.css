@@ -37,3 +37,34 @@
 .life-history-row strong{color:#c8fa5b}
 @media(max-width:850px){.life-shop-grid{grid-template-columns:repeat(2,minmax(0,1fr))}}
 @media(max-width:540px){.life-shop-grid,.life-wallet{grid-template-columns:1fr}.decision-dialog{padding:19px}.decision-option{padding:11px}.decision-option small{display:block;margin:4px 0 0;text-align:left}.life-item{padding:15px}}
+
+/* World Hoops — Weekly training card deck */
+.wh-weekly-training{display:flex;align-items:center;flex-wrap:wrap;gap:14px;margin:16px 0 4px}
+.wh-weekly-training small{color:#9db3c6;font-size:12px;line-height:1.5}
+.wh-training-dialog{width:min(890px,96vw)!important}
+.wh-card-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:13px;margin:23px 0}
+.wh-training-card{position:relative;text-align:left;min-width:0;min-height:300px;display:flex;flex-direction:column;gap:12px;padding:20px 15px 16px;color:#eef6ff;background:linear-gradient(160deg,#27374a,#0f1e2d 77%);border:1px solid #556a80;border-top:4px solid #89a5bd;border-radius:13px;cursor:pointer;transition:transform .18s,border-color .18s,box-shadow .18s}
+.wh-training-card:hover{transform:translateY(-4px);border-color:#c7f566;box-shadow:0 10px 35px #0006}
+.wh-training-card:focus-visible{outline:2px solid #c7f566;outline-offset:3px}
+.wh-training-card .wh-card-head{display:flex;align-items:center;justify-content:space-between;gap:7px;color:#d5ebff}
+.wh-card-head b{font:900 22px/1 system-ui}
+.wh-card-head span{padding:5px 8px;background:#ffffff13;border:1px solid #ffffff30;border-radius:5px;font-weight:850;font-size:9px;letter-spacing:.6px}
+.wh-training-card h3{font-size:20px;line-height:1.2;margin:1px 0 0;color:#fff}
+.wh-training-card p{font-size:12px;line-height:1.55;color:#b8c9da;flex:1;margin:0}
+.wh-card-bonuses{display:grid;gap:6px}
+.wh-card-bonuses strong{color:#62e78f;font-size:14px}
+.wh-card-bonuses small{color:#d4e3ed;font-size:11px}
+.wh-card-cost{display:flex;flex-wrap:wrap;gap:7px;justify-content:space-between;color:#e9bbc2;font-size:10px;border-top:1px solid #3f5264;padding-top:10px}
+.wh-training-card.uncommon{border-top-color:#7edda7;box-shadow:inset 0 22px 35px -28px #7edda7}
+.wh-training-card.epic{border-top-color:#bd8cfe;box-shadow:inset 0 25px 40px -29px #bd8cfe}
+.wh-training-card.legendary{border-top-color:#ffcd57;box-shadow:inset 0 25px 40px -29px #ffcd57}
+.wh-training-card.mythic{border-top-color:#ff7895;box-shadow:inset 0 30px 45px -29px #ff7895}
+.wh-training-card.uncommon .wh-card-head span{color:#a1ffbb}
+.wh-training-card.epic .wh-card-head span{color:#ceb0ff}
+.wh-training-card.legendary .wh-card-head span{color:#ffda78}
+.wh-training-card.mythic .wh-card-head span{color:#ffa1b7}
+.wh-training-deltas{display:flex;flex-wrap:wrap;gap:9px;margin:22px 0}
+.wh-attribute-change{display:inline-flex;padding:10px 14px;border:1px solid #456274;background:#24364a;border-radius:8px;color:#fff;font-size:15px;font-weight:850}
+.wh-attribute-change.positive{background:#143b28;border-color:#356e42;color:#75ff9f}
+.wh-attribute-change.negative{background:#44202b;border-color:#8b4a59;color:#ff889e}
+@media(max-width:750px){.wh-card-grid{grid-template-columns:1fr}.wh-training-card{min-height:180px}.wh-training-dialog{padding:17px!important}}
