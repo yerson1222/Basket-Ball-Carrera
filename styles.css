@@ -34,3 +34,13 @@ body.modal-open{overflow:hidden}.modal-backdrop{position:fixed;inset:0;z-index:5
 .fixture.bye .fixture-info{padding-left:12px;}
 /* Large NBA and G League directories */
 .club-directory{max-height:680px;overflow-y:auto;}
+
+/* World Hoops 3.0 — identificación de ligas internacionales */
+.league-badge{display:inline-flex;align-items:center;justify-content:center;width:31px;height:31px;background:#ffffff12;border:1px solid #ffffff17;border-radius:9px;padding:3px;vertical-align:middle;flex:none;overflow:hidden}
+.league-badge img{width:100%;height:100%;object-fit:contain;display:block}
+.league-badge.lg{width:116px;height:60px;border-radius:14px;padding:6px;background:#f1f1f1}
+.league-flag{display:inline-flex;align-items:center;justify-content:center;min-width:32px;min-height:32px;font-size:22px;line-height:1}
+.league-flag.lg{min-width:58px;min-height:58px;font-size:36px}
+.league-option .flag{display:inline-flex;align-items:center;justify-content:center;min-width:33px}
+.league-info-top .flag-large{display:inline-flex;align-items:center;justify-content:center;flex:none;min-width:61px;min-height:61px}
+@media(max-width:480px){.league-badge.lg{width:82px;height:47px}.league-info-top .flag-large{min-width:48px;min-height:48px}}

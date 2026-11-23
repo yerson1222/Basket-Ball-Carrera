@@ -1,0 +1,44 @@
+{
+  "source_file": "WorldHoops_Internacionales.zip",
+  "listed_teams": 103,
+  "legitimate_team_logos": 59,
+  "generic_rejected": 10,
+  "missing_team_logos": 44,
+  "team_logo_coverage": {
+    "cebl": {
+      "found": 0,
+      "total": 10
+    },
+    "acb": {
+      "found": 15,
+      "total": 18
+    },
+    "bsn": {
+      "found": 0,
+      "total": 12
+    },
+    "greece": {
+      "found": 14,
+      "total": 14
+    },
+    "turkey": {
+      "found": 11,
+      "total": 15
+    },
+    "lnbp": {
+      "found": 0,
+      "total": 14
+    },
+    "euroleague": {
+      "found": 19,
+      "total": 20
+    }
+  },
+  "league_badges": [
+    "acb",
+    "greece",
+    "turkey",
+    "euroleague"
+  ],
+  "notes": "Club lists are provided by the user. Placeholder files were rejected. Rosters and schedules are simplified game data."
+}
