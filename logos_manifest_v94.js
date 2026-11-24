@@ -1,0 +1,14 @@
+/* World Hoops V9.4: source-backed image references, keyed by brand or unique club ID.
+   Commons file pages and Scoutbasketball team logo files, reviewed 2026-11-23.
+   References are remote; missing artwork is explicitly labelled, not fabricated. */
+(function(){
+'use strict';
+const D=window.WH_DATA,V=window.WH_V8;
+const commons={"Charly":"Logo de Charly.svg","Jumex":"Grupo Jumex logo.svg","OXXO":"Oxxo Logo.svg","Gatorade":"Gatorade 2025.svg","Pepsi":"Pepsi 2023.svg","Sport Chek":"SportChek logo.svg","Canadian Tire":"Canadian Tire logo 2022 horizontal.svg","Tim Hortons":"Tim Hortons Logo.svg","Academy Sports + Outdoors":"Academy Logo.jpg","New Era":"NewEraCap logo.jpg","Banco Popular":"Banco Popular de Puerto Rico logo.svg","Topper":"Topper brand logo.png","Mostaza":"Mostaza restaurant logo.png","Banco Galicia":"Logo Banco Galicia.svg","Joma":"Joma Sport.svg","Kelme":"Kelme new logo.svg","Pascual":"Leche pascual logo.png","Decathlon":"Decathlon - logo (France, 2024).svg","Macron":"Macron logo horizontal 2025.svg","Kappa":"Kappa logo.svg","Le Coq Sportif":"Le coq sportif wordmark 2026.svg","Intermarché":"Intermarché logo 2009 classic.svg","Mizuno":"MIZUNO logo.svg","Asics":"Asics Logo.svg","Suntory":"SUNTORY logo.svg","Li-Ning":"Li-Ning logo red.png","Anta":"Anta logo.svg","361°":"Logo of 361˚.svg","Jollibee":"Jollibee Foods Corporation logo.svg","Antel":"Antel.svg","Tienda Inglesa":"Tienda Inglesa.svg","BancoEstado":"Logo BancoEstado.svg","Bancolombia":"Bancolombia S.A. logo.svg","Postobón":"Postobón S. A. logo.svg","Totto":"Totto.png","Penalty":"Penalty.png","Guaraná Antarctica":"Guarana-antarctica 2020.svg","Soprole":"Soprole.png","Erima":"Erima logo.svg","Uhlsport":"Uhlsport GmbH Logo.svg","REWE":"Logo REWE.svg"};
+const file=n=>'https://commons.wikimedia.org/wiki/Special:FilePath/'+encodeURIComponent(n.replaceAll(' ','_'));
+const direct={'Charly':'https://upload.wikimedia.org/wikipedia/commons/4/4f/Logo_de_Charly.svg'};
+for(const b of V.sponsors){if(commons[b.name]){b.logo=direct[b.name]||file(commons[b.name]);b.logoSource='https://commons.wikimedia.org/wiki/File:'+encodeURIComponent(commons[b.name].replaceAll(' ','_'));}}
+const aus=["Adelaide-36ers_1719334764.png","Brisbane-Bullets_1719335800.png","Cairns-Taipans_1719335665.png","Illawarra-Hawks_1719335667.jpeg","Melbourne-United_1725790084.png","New-Zealand-Breakers_1721744315.png","Perth-Wildcats_1719335661.png","South-East-Melbourne_1719336233_thumb.jpg","Sydney-Kings_1721744236.png","Tasmania-Jack-Jumpers_1719336892.png"];
+for(const t of D.realTeams.australia||[]){const n=aus[Number(t.id.split('-').pop())];if(n){t.logo='https://scoutbasketball.com/img/teams/images/'+n;t.logoSource=t.logo;}}
+window.WH_LOGOS_V94={brands:commons,teamSources:aus};
+})();
