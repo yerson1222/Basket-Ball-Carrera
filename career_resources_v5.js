@@ -44,7 +44,7 @@ function applyCached(id){
  const team=rawTeam(id),entry=memo[id];
  if(!team||!entry)return;
  if(!team.logo&&entry.logo)team.logo=entry.logo;
- if(Array.isArray(entry.players)&&entry.players.length)team.players=[...entry.players];
+ if(Array.isArray(entry.players)&&entry.players.length&&(!Array.isArray(team.players)||!team.players.length))team.players=[...entry.players];
 }
 for(const id of Object.keys(memo))applyCached(id);
 const inProgress=new Map();
