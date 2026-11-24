@@ -53,7 +53,7 @@ function profile(s,id,name,week){
  const morale=clamp(locker?.morale??(60+Math.round(rnd(seed+'morale')*28)),0,100);
  const physical=energy<48?'Fatigado':energy<67?'Cansado':'Disponible';
  const help=id===s.teamId?s.career?.v12Help:null,boost=help?.ok&&help.name===name?help.boost:0;
- return {...p,form:Math.round(form),energy,morale,physical,streak:form>=64?'En racha':form<=38?'Racha fría':'Estable',avg:recent.length?Math.round(avg*10)/10:null,boost};
+ return {...p,form:Math.round(form),energy,morale,physical,streak:form>=64?'En racha':form<=38?'Racha fría':'Estable',avg:recent.length?Math.round(avg*10)/10:null,boost,boostStat:boost?help.stat:null};
 }
 const fields=['name','pts','reb','ast','stl','blk','threes','tov','min','energy','form','morale'];
 function encode(rows){return rows.map(p=>fields.map(k=>p[k]??null));}
@@ -96,7 +96,8 @@ function recover(s,g){const own=g.boxV15?.[s.teamId];if(!own)return;const v=V.co
 const esc=x=>String(x??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 function status(p){return '<span class="wh15-player-state"><b>'+esc(p.streak)+'</b><small>'+esc(p.physical)+' · Energía '+p.energy+'% · Forma '+p.form+'%</small><span class="wh15-meter"><i style="width:'+p.energy+'%"></i></span></span>';}
 function teamPanel(s){const week=s.world.phase==='regular'?s.world.week+1:s.world.rounds.length+1+(s.world.playoffs?.round||0);
- const available=window.WH_V7?.available(s)&&!s.liveMatch&&['regular','playoffs'].includes(s.world.phase);
+ const scheduled=s.world.phase==='regular'?(s.world.rounds[s.world.week]||[]).some(m=>m.home===s.teamId||m.away===s.teamId):s.world.phase==='playoffs'&&(s.world.playoffs?.round===0?s.world.playoffs.seed?.includes(s.teamId):s.world.playoffs.semis?.some(m=>m.winner===s.teamId));
+ const available=window.WH_V7?.available(s)&&!s.liveMatch&&!s.career.pendingImpact&&scheduled;
  return '<section class="panel wh15-roster"><div class="eyebrow">VESTUARIO · INFORME DE RENDIMIENTO</div><h2>Estado de la plantilla</h2><div class="wh15-roster-grid">'+preview(s,s.teamId,week).map(p=>'<article><div class="wh15-player-avatar">'+esc(p.name.split(' ').map(x=>x[0]).slice(0,2).join(''))+'</div><div><b>'+esc(p.name)+'</b><small>'+p.position+' · '+p.role+' · NVL '+p.rating+'</small>'+status(p)+(p.avg!==null?'<small>Últimos partidos: '+p.avg+' PTS</small>':'')+(p.boost?'<small class="wh15-help-label">Ayuda recibida · próximo encuentro</small>':'')+(available?'<button class="btn ghost wh15-help-button" data-action="v7-team-open" data-name="'+esc(p.name)+'">Ayudar a '+esc(p.name.split(' ')[0])+'</button>':'')+'</div></article>').join('')+'</div></section>';}
 window.WH_V15={roster,profile,preview,box,commit,decode,recover,status,teamPanel};
 })();
