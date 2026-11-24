@@ -41,7 +41,7 @@ function core(s){
  if(v.teamKey!==s.teamId){v.players={};v.chemistry=65;v.teamKey=s.teamId;}
  if(v.seasonKey!==s.season){v.seasonKey=s.season;v.helped={};v.birthdayMonth=hash(s.player.name)%12;v.annual=[];}
  let names=E.playerNames(team(s.teamId)).filter(n=>n!==s.player.name);
- if(names.length<2)names=[...names,...Array.from({length:8-names.length},(_,i)=>'Compañero '+(i+1))];
+ if(names.length<2&&window.WH_V15)names=window.WH_V15.roster(team(s.teamId)).map(p=>p.name).filter(n=>n!==s.player.name);
  for(const n of Object.keys(v.players))if(!names.includes(n))delete v.players[n];
  for(const n of names)if(!v.players[n])v.players[n]={morale:60+hash(n)%30,energy:60+hash(n+'e')%35,bond:50};
  return v;
@@ -146,7 +146,7 @@ function help(s,name,action){const v=core(s),p=v.players[name];if(!p||!['talk','
  news(s,'Compañeros antes que rivales','Ayudaste a '+name+'. Mejora la química del vestuario.');return true;}
 function lineup(s,id,week,help){
  const t=team(id);let names=[...new Set(E.playerNames(t).filter(n=>n!==s.player.name))];
- if(!names.length)names=Array.from({length:7},(_,i)=>'Rotación '+(i+1));
+ if(!names.length&&window.WH_V15)names=window.WH_V15.roster(t).map(p=>p.name);
  if(names.length>9){const offset=(week*9)%names.length;names=Array.from({length:9},(_,i)=>names[(offset+i)%names.length]);}
  if(help?.ok&&!names.includes(help.name)){if(names.length>=9)names[names.length-1]=help.name;else names.push(help.name);}
  return names;
@@ -164,7 +164,7 @@ function rankings(s){
  function row(id,name,synthetic){const key=id+'|'+name;if(!rows.has(key))rows.set(key,{id,name,synthetic,gp:0,pts:0,reb:0,ast:0,stl:0,blk:0});return rows.get(key);}
  for(const g of games)for(const id of [g.home,g.away]){
   const line=id===s.teamId?s.world.playerGames.find(x=>x.stage==='regular'&&x.week===g.week):null;
-  const roster=g.boxScore?.[id]||boxScore(s,g,id,line);
+  const roster=window.WH_V15?.decode(g,id)||g.boxScore?.[id]||boxScore(s,g,id,line);
   for(const stat of roster){const r=row(id,stat.name,stat.name.startsWith('Rotación '));r.gp++;for(const k of ['pts','reb','ast','stl','blk'])r[k]+=stat[k]||0;}
  }
  return [...rows.values()].map(r=>({...r,ppg:r.pts/r.gp,rpg:r.reb/r.gp,apg:r.ast/r.gp,spg:r.stl/r.gp,bpg:r.blk/r.gp,eff:(r.pts+r.reb*1.2+r.ast*1.5+r.stl*2+r.blk*2)/r.gp}));
