@@ -12,9 +12,41 @@
   <link rel="stylesheet" href="career_origin_v4.css?v=worldhoops-v6-international-20261123" />
   <link rel="stylesheet" href="career_stories_v5.css?v=worldhoops-v6-international-20261123" />
   <link rel="stylesheet" href="career_international_v6.css?v=worldhoops-v6-international-20261123" />
+  <style>
+    /* Permanent career shortcut; outside the animated app shell so it stays fixed. */
+    .wh-home-fab {
+      display:none; position:fixed; z-index:40;
+      right:max(18px,env(safe-area-inset-right));
+      bottom:max(18px,env(safe-area-inset-bottom));
+      width:64px; height:64px; padding:6px; border-radius:50%;
+      border:2px solid var(--club-accent,#c8fa5b);
+      background:#101b29; cursor:pointer; align-items:center; justify-content:center;
+      box-shadow:0 8px 24px #0008,0 0 15px color-mix(in srgb,var(--club-accent,#c8fa5b) 35%,transparent);
+      transition:transform .2s ease,box-shadow .2s ease;
+      -webkit-tap-highlight-color:transparent;
+    }
+    #app:has(.app-shell) + .wh-home-fab {display:flex}
+    body.modal-open .wh-home-fab {visibility:hidden;pointer-events:none}
+    .wh-home-fab svg {display:block;width:100%;height:100%;transition:transform .28s ease}
+    @media(hover:hover){.wh-home-fab:hover{transform:translateY(-4px) scale(1.06)}.wh-home-fab:hover svg{transform:rotate(22deg)}}
+    .wh-home-fab:active{transform:scale(.92)}
+    .wh-home-fab:focus-visible{outline:3px solid white;outline-offset:4px}
+    .app-shell .footer{padding-bottom:90px}
+    @media(max-width:650px){.wh-home-fab{width:58px;height:58px;right:max(12px,env(safe-area-inset-right));bottom:max(12px,env(safe-area-inset-bottom))}}
+    @media(prefers-reduced-motion:reduce){.wh-home-fab,.wh-home-fab svg{transition:none}}
+  </style>
 </head>
 <body>
   <div id="app"></div>
+  <button class="wh-home-fab" type="button" data-action="nav" data-tab="home" aria-label="Volver a Mi carrera" title="Volver a Mi carrera">
+    <svg viewBox="0 0 48 48" aria-hidden="true" focusable="false">
+      <defs><radialGradient id="wh-home-ball-fill" cx="30%" cy="24%" r="80%"><stop offset="0%" stop-color="#ffc36b"/><stop offset="55%" stop-color="#f18a2c"/><stop offset="100%" stop-color="#b64c14"/></radialGradient><clipPath id="wh-home-ball-clip"><circle cx="24" cy="24" r="21"/></clipPath></defs>
+      <circle cx="24" cy="24" r="21" fill="url(#wh-home-ball-fill)" stroke="#552b17" stroke-width="2"/>
+      <g clip-path="url(#wh-home-ball-clip)" fill="none" stroke="#552b17" stroke-width="2.2" stroke-linecap="round">
+        <path d="M3 24h42M24 3v42M9 8C30 15 30 33 9 40M39 8C18 15 18 33 39 40" transform="rotate(-35 24 24)"/>
+      </g>
+    </svg>
+  </button>
   <div id="modal-root"></div>
   <div id="toast-root" role="status" aria-live="polite"></div>
   <script src="data.js?v=worldhoops-v6-international-20261123"></script>
