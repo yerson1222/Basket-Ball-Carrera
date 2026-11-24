@@ -48,23 +48,24 @@ function markets(s,f,club,league){
   for(const [k,n,base,sd] of stats){const valid=k==='tov'?games.filter(g=>Number.isFinite(g.tov)):games;const mean=valid.length?valid.reduce((v,g)=>v+value(g,k),0)/valid.length:base;const line=Math.max(.5,Math.floor(mean)+.5);pair(k,n,line,'stat',sd,mean);if(['pts','reb','ast','pra','threes'].includes(k)){const step=Math.max(1,Math.round(sd*.65));if(line-step>=.5)pair(k,n,line-step,'stat',sd,mean,true);pair(k,n,line+step,'stat',sd,mean,true);}}
   for(const [k,n,pr] of [['dd','Doble-doble',.27],['td','Triple-doble',.08]])for(const side of ['yes','no'])result.push({id:k+side,group:n,label:side==='yes'?'Sí':'No',kind:k,side,odds:odds(side==='yes'?pr:1-pr)});
  }
-  const V6=window.WH_V6,week=s.world.phase==='regular'?s.world.week+1:s.world.rounds.length+1+(s.world.playoffs?.round||0);
- if(V6?.lineup){
-  const names=V6.lineup(s,s.teamId,week,s.career.v12Help);
-  const records=s.world.results||[];
-  names.forEach((name,i)=>{
-   const history=records.filter(g=>g.home===s.teamId||g.away===s.teamId).slice(-12).map(g=>(g.boxScore?.[s.teamId]||V6.boxScore(s,g,s.teamId,s.world.playerGames.find(p=>p.week===g.week&&p.stage===g.stage))).find(p=>p.name===name)).filter(Boolean);
-   const participant='mate-'+i;
+ const V15=window.WH_V15,week=s.world.phase==='regular'?s.world.week+1:s.world.rounds.length+1+(s.world.playoffs?.round||0);
+ if(V15)for(const id of [s.teamId,f.home===s.teamId?f.away:f.home]){
+  const players=V15.preview(s,id,week),records=s.world.results||[];
+  players.forEach((p,i)=>{
+   const name=p.name,participant=(id===s.teamId?'mate-':'opp-')+i;
+   const history=records.filter(g=>g.home===id||g.away===id).slice(-12).map(g=>(V15.decode(g,id)||g.boxScore?.[id]||[]).find(row=>row.name===name)).filter(Boolean);
+   const modifier=(.75+p.form/200)*(.65+p.energy/220)*(.85+p.morale/350);
    for(const [k,n,base,sd] of stats){
-    const typical=k==='pts'?Math.max(5,(pace-14)/names.length*(1.4-i*.08)):k==='pra'?Math.max(11,(pace-14)/names.length*(1.4-i*.08)+9):k==='reb'?5:k==='ast'?3:k==='min'?24:base;
-    const mean=history.length?history.reduce((v,g)=>v+value(g,k),0)/history.length:typical;
+    const typical=k==='pts'?Math.max(2,(pace-(id===s.teamId?14:0))/12*(p.role==='Titular'?1.45:p.role==='Rotación'?1:.65)):k==='pra'?Math.max(5,base*(p.role==='Titular'?.8:.55)):k==='reb'?(['PF','C'].includes(p.position)?6:3):k==='ast'?(['PG','SG'].includes(p.position)?4:2):k==='min'?(p.role==='Titular'?30:p.role==='Rotación'?20:12):base;
+    const old=history.length?history.reduce((v,g)=>v+value(g,k),0)/history.length:typical;
+    const mean=Math.max(.15,(old*.65+typical*.35)*modifier+(p.boost&&['pts','pra','pr','pa','reb','ast'].includes(k)?p.boost*.18:0));
     const line=Math.max(.5,Math.floor(mean)+.5);
     for(const side of ['over','under']){
      const pr=1/(1+Math.exp((line-mean)/Math.max(.65,sd*.65)));
-     result.push({id:participant+'-'+k+'-'+side,group:name+' · '+n,marketName:n,participant,name,label:(side==='over'?'Más de ':'Menos de ')+line,kind:'stat',stat:k,line,side,odds:odds(side==='over'?pr:1-pr)});
+     result.push({id:participant+'-'+k+'-'+side,group:name+' · '+n+' · '+club(id).abbr,marketName:n,participant,name,teamId:id,label:(side==='over'?'Más de ':'Menos de ')+line,kind:'stat',stat:k,line,side,odds:odds(side==='over'?pr:1-pr)});
     }
    }
-   for(const [k,n,pr] of [['dd','Doble-doble',.2],['td','Triple-doble',.08]])for(const side of ['yes','no'])result.push({id:participant+'-'+k+'-'+side,group:name+' · '+n,marketName:n,participant,name,kind:k,side,odds:odds(side==='yes'?pr:1-pr)});
+   for(const [k,n,pr] of [['dd','Doble-doble',.2],['td','Triple-doble',.08]])for(const side of ['yes','no'])result.push({id:participant+'-'+k+'-'+side,group:name+' · '+n+' · '+club(id).abbr,marketName:n,participant,name,teamId:id,kind:k,side,odds:odds(side==='yes'?pr:1-pr)});
   });
  }
  return result;
@@ -72,7 +73,8 @@ function markets(s,f,club,league){
 function book(s,f,club,league,teamLogo){
  const x=core(s),k=key(s);
  if(!f)return header(s)+panel('Sin partido disponible','<p>Vuelve cuando exista un próximo rival.</p>'+btn('Investigaciones','integrity'))+history(s);
- if(x.marketKey!==k||x.marketVersion!==14){if(x.marketKey!==k)x.slip=[];x.marketKey=k;x.marketVersion=14;x.market=markets(s,f,club,league);}
+ const revision=JSON.stringify([s.career.v12Help||null,window.WH_V6.core(s).players]);
+ if(x.marketKey!==k||x.marketVersion!==15||x.marketRevision!==revision){if(x.marketKey!==k||x.marketVersion!==15)x.slip=[];x.marketKey=k;x.marketVersion=15;x.marketRevision=revision;x.market=markets(s,f,club,league);}
  const ms=x.market||[],selected=x.slip.map(id=>ms.find(m=>m.id===id)).filter(Boolean),locked=!!s.liveMatch||!!s.career.pendingImpact;
  const team=m=>['ml','spread','total','teamtotal'].includes(m.kind),personal=m=>!m.participant&&!team(m),mates=[...new Map(ms.filter(m=>m.participant).map(m=>[m.participant,m.name])).entries()];
  const tabs=[['team','Partido'],['self',s.player.name],...mates],tab=tabs.some(t=>t[0]===x.bookTab)?x.bookTab:'team';
@@ -80,7 +82,9 @@ function book(s,f,club,league,teamLogo){
  const groups=[...new Set(visible.map(m=>m.group))],total=selected.reduce((v,m)=>v*m.odds,1);
  const home=club(f.home),away=club(f.away);
  const banner='<div class="wh14-sports-hero"><span class="wh14-eyebrow">WORLD HOOPS · MATCHDAY</span><div class="wh14-versus"><div>'+(teamLogo?teamLogo(home,'lg'):'')+'<strong>'+esc(home.name)+'</strong><small>LOCAL</small></div><i>VS</i><div>'+(teamLogo?teamLogo(away,'lg'):'')+'<strong>'+esc(away.name)+'</strong><small>VISITANTE</small></div></div><div class="wh14-hero-foot"><span class="wh14-status '+(locked?'closed':'')+'">'+(locked?'Mercados cerrados':'Mercados abiertos')+'</span><span>Jornada '+(s.world.week+1)+'</span></div></div>';
- const tabsHTML='<div class="wh14-market-tabs" aria-label="Mercados por jugador">'+tabs.map(([id,name])=>btn(esc(name),'book-tab','data-id="'+esc(id)+'" aria-pressed="'+(id===tab)+'"',id===tab?'primary':'ghost')).join('')+'</div>';
+ const tabHTML=([id,name])=>btn(esc(name),'book-tab','data-id="'+esc(id)+'" aria-pressed="'+(id===tab)+'"',id===tab?'primary':'ghost');
+ const selectedPlayer=ms.find(m=>m.participant===tab),week=s.world.phase==='regular'?s.world.week+1:s.world.rounds.length+1+(s.world.playoffs?.round||0);
+ const tabsHTML='<div class="wh14-market-tabs">'+tabs.slice(0,2).map(tabHTML).join('')+'</div><details class="wh15-player-select" '+(tab.startsWith('mate-')?'open':'')+'><summary>Mis compañeros · '+mates.filter(t=>t[0].startsWith('mate-')).length+'</summary><div class="wh14-market-tabs">'+mates.filter(t=>t[0].startsWith('mate-')).map(tabHTML).join('')+'</div></details><details class="wh15-player-select" '+(tab.startsWith('opp-')?'open':'')+'><summary>Equipo rival · '+mates.filter(t=>t[0].startsWith('opp-')).length+'</summary><div class="wh14-market-tabs">'+mates.filter(t=>t[0].startsWith('opp-')).map(tabHTML).join('')+'</div></details>'+(selectedPlayer?'<div class="wh15-market-profile"><strong>'+esc(selectedPlayer.name)+'</strong>'+window.WH_V15.status(window.WH_V15.profile(s,selectedPlayer.teamId,selectedPlayer.name,week))+'</div>':'');
  const marketHTML=groups.map(g=>'<div class="wh13-market"><b>'+esc(visible.find(m=>m.group===g)?.marketName||g)+'</b><div class="wh13-options">'+visible.filter(m=>m.group===g).map(m=>btn(esc(m.label||((m.side==='over'?'Más de ':'Menos de ')+m.line))+'<strong>'+m.odds.toFixed(2)+'</strong>','select','data-id="'+esc(m.id)+'" aria-pressed="'+x.slip.includes(m.id)+'" '+(locked?'disabled':''),x.slip.includes(m.id)?'primary':'ghost')).join('')+'</div></div>').join('')||'<p class="muted">No hay mercados disponibles para este jugador.</p>';
  const ticket=panel('Mi boleto <span class="wh14-count">'+selected.length+'</span>',(selected.length?selected.map(m=>'<div class="wh14-pick"><div><small>'+esc(m.group)+'</small><strong>'+esc(m.label||((m.side==='over'?'Más de ':'Menos de ')+m.line))+'</strong></div><b>'+m.odds.toFixed(2)+'</b>'+btn('×','select','aria-label="Quitar selección" data-id="'+esc(m.id)+'" '+(locked?'disabled':''))+'</div>').join(''):'<div class="wh14-empty-ticket">Selecciona un mercado para crear tu boleto.</div>')+'<div class="wh14-total">Cuota total <b>'+total.toFixed(2)+'</b></div><label>Importe <input id="wh13-stake" type="number" min="1" step="1" max="'+Math.floor(wallet(s).cash)+'" value="'+(x.bookStake||100)+'"></label><div class="wh14-total">Retorno potencial <strong id="wh13-potential" data-odds="'+total+'">'+money((x.bookStake||100)*total)+'</strong></div>'+btn('Confirmar boleto','place',locked||!selected.length?'disabled':'','primary')+btn('Limpiar','clear'));
  return header(s)+banner+'<div class="wh13-layout wh14-book"><div>'+panel('Mercados del encuentro',tabsHTML+marketHTML)+'</div><aside class="wh14-betslip">'+ticket+panel('Integridad deportiva','<p>Consulta tus expedientes y sanciones de la liga.</p>'+btn(x.case?'Expediente pendiente':'Investigaciones','integrity','','ghost'))+'</aside></div>'+history(s);
@@ -107,7 +111,7 @@ function alterLine(s,line,teamPts){
 function alterScore(s,own){return mode(s)==='fix'&&!s.player.injury?clamp(own+rand(-12,3),53,170):own;}
 function suspendLine(s,round,stage,opponent){const x=core(s);if(!x.suspension)return null;x.suspension--;if(s.player.injury>0)s.player.injury--;return {week:round,stage,opponent,pts:0,reb:0,ast:0,stl:0,blk:0,min:0,fg:0,threes:0,tov:0,dnp:true,suspended:true};}
 function grade(l,r,g){
- if(l.participant){g=Object.values(r.boxScore||{}).flat().find(p=>p.name===l.name);if(!g)return null;}
+ if(l.participant){const id=l.teamId||Object.keys(r.boxV15||r.boxScore||{}).find(id=>(window.WH_V15?.decode(r,id)||r.boxScore?.[id]||[]).some(p=>p.name===l.name));g=(window.WH_V15?.decode(r,id)||r.boxScore?.[id]||[]).find(p=>p.name===l.name);if(!g)return null;}
  if(['stat','dd','td'].includes(l.kind)&&g.dnp)return null;
  if(l.kind==='ml')return r.winner===l.side;
  if(l.kind==='spread'){const v=(r.home===l.side?r.hs-r.as:r.as-r.hs)+l.line;return v===0?null:v>0;}
