@@ -226,15 +226,41 @@ for(const [cat,icon,base,names,editions] of catalog)for(let i=0;i<names.length;i
 }
 // Round-robin by category keeps every category represented.
 const buckets=catalog.map(c=>{const items=candidates.filter(i=>i.category===c[0]);const models=items.filter((_,i)=>i%c[4].length===0),versions=items.filter((_,i)=>i%c[4].length!==0);if(c[0]==='Automóviles'){const flagship=models.pop();models.splice(2,0,flagship);}return models.concat(versions);});while(E.items.length<300&&buckets.some(b=>b.length))for(const b of buckets){if(E.items.length>=300)break;if(b.length)E.items.push(b.shift());}
+// V15.3: monetary value determines prestige; tiers strictly increase benefits.
+const skillNames153={shooting:'tiro',playmaking:'creación',defense:'defensa',athleticism:'atletismo'};
+for(const item of E.items){
+ const m=/^v13-\d+-(\d+)-(\d+)-(\d+)$/.exec(item.id),edition=m?+m[3]:0;
+ const p=Math.max(250,item.price),level=Math.log10(p/250);
+ item.pop=Math.max(1,Math.round(1+level*4)+edition*2);
+ item.confidence=Math.max(2,Math.round(2+level*5)+edition*3);
+ if(item.skill)item.skillBoost=Math.max(1,Math.round(1+level*.8)+edition);
+ if(item.energyGain)item.energyGain=Math.min(35,Math.round(3+level*4)+edition*5);
+ item.tierIndex=edition;
+ item.prestige=level>=3.1?'Signature':level>=2.2?'Lujo':level>=1.3?'Premium':'Esencial';
+ if(item.category)item.desc='+'+item.pop+' popularidad · +'+item.confidence+' confianza · riesgo '+item.risk+'/10'+(item.skill?' · +'+item.skillBoost+' '+skillNames153[item.skill]:'')+(item.energyGain?' · +'+item.energyGain+' energía':'');
+}
+if(window.WH_V14_ART?.configure)window.WH_V14_ART.configure(E.items);
 const oldBuy=E.buy;
-E.buy=function(s,id){const item=E.items.find(i=>i.id===id),r=oldBuy(s,id);if(r?.ok&&item?.category){const c=E.initWorld(s);c.popularity=clamp(c.popularity+item.pop,0,100);core(s).personalConfidence=clamp((core(s).personalConfidence??50)+item.confidence,0,100);if(item.skill&&s.player.skills) s.player.skills[item.skill]=clamp(s.player.skills[item.skill]+item.skillBoost,1,99);if(item.energyGain)s.player.energy=clamp(s.player.energy+item.energyGain,0,100);s.fans=(s.fans||0)+item.pop*120;if(c.lastPurchase){c.lastPurchase.popularity=item.pop;c.lastPurchase.id=item.id;c.lastPurchase.confidence=item.confidence;}}return r;};
+E.buy=function(s,id){
+ const item=E.items.find(i=>i.id===id),c=E.initWorld(s),before=c.popularity,r=oldBuy(s,id);
+ if(r?.ok&&item){
+  const gained=Math.max(0,c.popularity-before),extra=Math.max(0,item.pop-gained);
+  c.popularity=clamp(c.popularity+extra,0,100);
+  core(s).personalConfidence=clamp((core(s).personalConfidence??50)+item.confidence,0,100);
+  if(item.skill&&s.player.skills)s.player.skills[item.skill]=clamp(s.player.skills[item.skill]+item.skillBoost,1,99);
+  if(item.energyGain)s.player.energy=clamp(s.player.energy+item.energyGain,0,100);
+  s.fans=(s.fans||0)+extra*120;
+  if(c.lastPurchase){c.lastPurchase.popularity=Math.max(0,c.popularity-before);c.lastPurchase.id=item.id;c.lastPurchase.confidence=item.confidence;}
+ }
+ return r;
+};
 const photo=(item,illustration)=>window.WH_V14_ART?window.WH_V14_ART.art(item,illustration):illustration;
 const categoryArt={'Automóviles':'sports_car','Motocicletas':'sports_car','Propiedades':'penthouse','Ropa y calzado':'shoes','Joyas y relojes':'image_agent','Entrenamiento':'gym','Salud':'physio','Tecnología':'streaming_room','Viajes':'family_trip','Negocios':'image_agent','Personal':'trainer','Entretenimiento':'streaming_room'};
 function purchase(data){const i=E.items.find(x=>x.id===data.id);if(!i)return V.purchase(data);if(!i.category)return V.purchase(data).replace(V.art(i),photo(i,V.art(i)));return '<div class="modal-backdrop decision-backdrop"><section class="modal-card decision-dialog v92-purchase" role="dialog" aria-modal="true"><div class="decision-eyebrow">NUEVA ADQUISICIÓN</div>'+photo(i,V.art({id:categoryArt[i.category],name:i.name}))+'<h2>¡Ya es tuyo!</h2><h3>'+esc(i.name)+'</h3><p>'+esc(i.desc)+'</p><div class="wh13-metrics">'+metric('INVERSIÓN',money(i.price))+metric('POPULARIDAD','+'+i.pop)+metric('CONFIANZA','+'+i.confidence)+'</div><button class="btn primary" data-action="close-modal">Continuar</button></section></div>';}
 function lifeNotice(s){const x=core(s),e=x.lifePending;if(!e)return '';return panel(esc(e.title),'<p>'+esc(e.text)+'</p>'+e.options.map((o,i)=>btn(esc(o.label)+(o.cash?' · '+money(o.cash):''),'life-answer','data-id="'+i+'" '+(o.cash<0&&wallet(s).cash<Math.abs(o.cash)?'disabled':''),'primary')).join(''));}
 function shop(s){
  const x=core(s),cat=x.shopCat||'Todos',c=wallet(s),all=E.items.filter(i=>cat==='Todos'||cat==='Mis adquisiciones'&&c.owned.includes(i.id)||(i.category||'Originales')===cat),page=clamp(x.shopPage||0,0,Math.max(0,Math.ceil(all.length/24)-1));
- return '<div class="wh13-metrics">'+metric('CATÁLOGO',E.items.length)+metric('PATRIMONIO EN COMPRAS',money(E.items.filter(i=>c.owned.includes(i.id)).reduce((a,i)=>a+i.price,0)))+metric('CONFIANZA PERSONAL',x.personalConfidence??50)+'</div>'+lifeNotice(s)+'<div class="wh13-options">'+['Todos','Mis adquisiciones','Originales',...catalog.map(c=>c[0])].map(n=>btn(esc(n),'shop-cat','data-id="'+esc(n)+'"',cat===n?'primary':'ghost')).join('')+'</div><p>'+all.length+' artículos · página '+(page+1)+' / '+Math.max(1,Math.ceil(all.length/24))+'</p><div class="life-shop-grid">'+all.slice(page*24,page*24+24).map(i=>'<article class="life-item">'+photo(i,V.art?V.art(i.category?{id:categoryArt[i.category],name:i.name}:i):'<div class="wh13-product">'+(i.icon||'★')+'</div>')+'<h3>'+esc(i.name)+'</h3><p>'+esc(i.desc)+'</p><strong>'+money(i.price)+'</strong><p>'+(c.owned.includes(i.id)?'Adquirido':V.available(s,i)?'<button class="btn primary" data-action="buy-life" data-id="'+esc(i.id)+'">Comprar</button>':'Bloqueado · saldo o progreso insuficiente')+'</p></article>').join('')+'</div>'+btn('Anterior','shop-page','data-id="-1" '+(page===0?'disabled':''))+btn('Siguiente','shop-page','data-id="1" '+(page>=Math.ceil(all.length/24)-1?'disabled':''))+panel('Eventos de estilo de vida',x.events.slice(0,10).map(e=>'<p>'+esc(e.text)+' · '+money(e.delta)+'</p>').join('')||'<p>Tus adquisiciones pueden generar nuevas historias durante la temporada.</p>');
+ return '<div class="wh13-metrics">'+metric('CATÁLOGO',E.items.length)+metric('PATRIMONIO EN COMPRAS',money(E.items.filter(i=>c.owned.includes(i.id)).reduce((a,i)=>a+i.price,0)))+metric('CONFIANZA PERSONAL',x.personalConfidence??50)+'</div>'+lifeNotice(s)+'<div class="wh13-options">'+['Todos','Mis adquisiciones','Originales',...catalog.map(c=>c[0])].map(n=>btn(esc(n),'shop-cat','data-id="'+esc(n)+'"',cat===n?'primary':'ghost')).join('')+'</div><p>'+all.length+' artículos · página '+(page+1)+' / '+Math.max(1,Math.ceil(all.length/24))+'</p><div class="life-shop-grid">'+all.slice(page*24,page*24+24).map(i=>'<article class="life-item wh153-product" data-prestige="'+esc(i.prestige)+'">'+photo(i,V.art?V.art(i.category?{id:categoryArt[i.category],name:i.name}:i):'<div class="wh13-product">'+(i.icon||'★')+'</div>')+'<div class="wh153-product-tier">'+esc(i.prestige)+'</div><h3>'+esc(i.name)+'</h3><p>'+esc(i.category?i.desc:i.desc+' · +'+i.pop+' popularidad · +'+i.confidence+' confianza')+'</p><strong>'+money(i.price)+'</strong><p>'+(c.owned.includes(i.id)?'Adquirido':V.available(s,i)?'<button class="btn primary" data-action="buy-life" data-id="'+esc(i.id)+'">Comprar</button>':'Bloqueado · saldo o progreso insuficiente')+'</p></article>').join('')+'</div>'+btn('Anterior','shop-page','data-id="-1" '+(page===0?'disabled':''))+btn('Siguiente','shop-page','data-id="1" '+(page>=Math.ceil(all.length/24)-1?'disabled':''))+panel('Eventos de estilo de vida',x.events.slice(0,10).map(e=>'<p>'+esc(e.text)+' · '+money(e.delta)+'</p>').join('')||'<p>Tus adquisiciones pueden generar nuevas historias durante la temporada.</p>');
 }
 const option=(label,cash=0,pop=0,energy=0,injury=0,confidence=0)=>({label,cash,pop,energy,injury,confidence});
 function lifestyleEvent(s,news){
