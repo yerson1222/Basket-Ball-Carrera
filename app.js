@@ -123,12 +123,18 @@ function calcPlayerGame(teamPts,opponent,lid,round,stage='regular'){
   line.reb=clamp(line.reb+impact.reb,0,24);
   line.stl=clamp(line.stl+impact.stl,0,10);
   line.blk=clamp(line.blk+impact.blk,0,10);
-  line.decision={action:impact.action,day:impact.day,success:impact.success,details:impact.details};
+  line.decision={action:impact.action,day:impact.day,success:impact.success,details:impact.details,clutch:impact.clutch||null};
  }
  return line;
 }
 function playFixture(m,stage,week){const home=club(m.home),away=club(m.away);let hs=teamScore(home,away,save.leagueId,true),as=teamScore(away,home,save.leagueId,false);
  const impact=save.career?.pendingImpact;
+ if(impact?.clutch&&(m.home===save.teamId||m.away===save.teamId)){
+  // La posesión decisiva se juega con un marcador realmente ajustado.
+  const local=m.home===save.teamId,opposingScore=local?as:hs;
+  const tiedEnteringClutch=clamp(opposingScore+randint(-2,2),54,165);
+  if(local)hs=tiedEnteringClutch;else as=tiedEnteringClutch;
+ }
  if(impact&&(m.home===save.teamId||m.away===save.teamId)){
   const delta=impact.scoreDelta+impact.moodPts;
   if(m.home===save.teamId)hs=clamp(hs+delta,53,170);else as=clamp(as+delta,53,170);
@@ -407,7 +413,7 @@ function draftOfferModal(){
  '<p class="decision-help">Comenzarás como joven promesa. Tu actuación definirá los minutos que recibas.</p>'+
  '<button type="button" class="btn primary create-submit" data-action="accept-draft">Aceptar selección y empezar '+ico('arrow',17)+'</button></div></div>';
 }
-function resultModal(result,details){const p=save.world.lastMatch?.player;return `<div class="modal-backdrop" data-action="close-modal"><div class="modal-card result-modal" role="dialog" aria-modal="true" aria-label="Resultado del partido"><button class="icon-btn modal-close" data-action="close-modal" aria-label="Cerrar">${ico('close',21)}</button><div class="result-kicker">${ico('court',20)} ${esc(details||'FINAL DEL PARTIDO')}</div>${result&&p?`<div class="result-teams"><div>${teamLogo(club(result.home),'lg')}<b>${esc(club(result.home)?.city)}</b></div><div class="result-score"><strong>${result.hs} <span>:</span> ${result.as}</strong><small>FINAL</small></div><div>${teamLogo(club(result.away),'lg')}<b>${esc(club(result.away)?.city)}</b></div></div><h2>${result.winner===save.teamId?'¡VICTORIA!':'A SEGUIR LUCHANDO'}</h2><p>${p.dnp?'No jugaste este encuentro por lesión.':`Gran trabajo. Tus números en la cancha: ${p.pts} puntos, ${p.reb} rebotes y ${p.ast} asistencias.`}</p>`:`<div class="result-big-icon">${ico('trophy',48)}</div><h2>${esc(details||'Ronda completada')}</h2><p>Consulta el calendario y tu rendimiento para conocer todos los resultados.</p>`}<button class="btn primary create-submit" data-action="close-modal">Continuar ${ico('arrow',18)}</button></div></div>`;}
+function resultModal(result,details){const p=save.world.lastMatch?.player;return `<div class="modal-backdrop" data-action="close-modal"><div class="modal-card result-modal" role="dialog" aria-modal="true" aria-label="Resultado del partido"><button class="icon-btn modal-close" data-action="close-modal" aria-label="Cerrar">${ico('close',21)}</button><div class="result-kicker">${ico('court',20)} ${esc(details||'FINAL DEL PARTIDO')}</div>${result&&p?`<div class="result-teams"><div>${teamLogo(club(result.home),'lg')}<b>${esc(club(result.home)?.city)}</b></div><div class="result-score"><strong>${result.hs} <span>:</span> ${result.as}</strong><small>FINAL</small></div><div>${teamLogo(club(result.away),'lg')}<b>${esc(club(result.away)?.city)}</b></div></div>${p.decision?.clutch?`<div class="wh-clutch-result"><strong>${p.decision.clutch.success?'¡CANASTA DECISIVA!':'JUGADA DECISIVA FALLADA'}</strong><span>${esc(p.decision.clutch.choice)} · Precisión ${p.decision.clutch.accuracy}% · Impacto ${p.decision.clutch.delta>0?'+':''}${p.decision.clutch.delta}</span></div>`:''}<h2>${result.winner===save.teamId?'¡VICTORIA!':'A SEGUIR LUCHANDO'}</h2><p>${p.dnp?'No jugaste este encuentro por lesión.':`Gran trabajo. Tus números en la cancha: ${p.pts} puntos, ${p.reb} rebotes y ${p.ast} asistencias.`}</p>`:`<div class="result-big-icon">${ico('trophy',48)}</div><h2>${esc(details||'Ronda completada')}</h2><p>Consulta el calendario y tu rendimiento para conocer todos los resultados.</p>`}<button class="btn primary create-submit" data-action="close-modal">Continuar ${ico('arrow',18)}</button></div></div>`;}
 function showModal(html){$('#modal-root').innerHTML=html;document.body.classList.add('modal-open');}
 function closeModal(){const root=$('#modal-root');if(root)root.innerHTML='';document.body.classList.remove('modal-open');}
 function toast(text){const root=$('#toast-root');if(!root)return;root.innerHTML=`<div class="toast">${ico('check',18)} ${esc(text)}</div>`;clearTimeout(toast.timer);toast.timer=setTimeout(()=>{root.innerHTML='';},3400);}
