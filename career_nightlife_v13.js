@@ -58,7 +58,7 @@ function place(s,stake){const x=core(s);if(s.liveMatch||s.career.pendingImpact||
  if(!debit(s,stake,'Boleto deportivo'))return 'Importe inválido o saldo insuficiente.';
  x.tickets.unshift({key:key(s),legs:legs.map(m=>({...m})),stake,state:'pendiente'});x.slip=[];return 'Boleto confirmado.';
 }
-function mode(s){const d=core(s).decision;return d?.key===key(s)&&!core(s).suspension?d.mode:'clean';}
+function mode(s){const d=core(s).decision;return d?.key===key(s)&&!core(s).suspension&&!s.player.injury?d.mode:'clean';}
 function decision(s,id){if(!['clean','focus','withdraw','fix'].includes(id)||s.liveMatch||s.career.pendingImpact||core(s).suspension)return;core(s).decision={key:key(s),mode:id};}
 function alterLine(s,line,teamPts){
  if(line.dnp)return line;
@@ -83,13 +83,13 @@ function settle(s,r,g,news){const x=core(s),k=key(s),m=g.dnp?'clean':mode(s);for
  t.payout=t.state==='perdido'?0:round(t.stake*t.legs.reduce((v,l,i)=>v*(results[i]===true?l.odds:1),1));credit(s,t.payout,'Liquidación '+t.state);news('Boleto '+t.state,money(t.payout)+' de retorno ficticio.','activity');
  }
  if(m!=='clean')x.risk=clamp(x.risk+(m==='fix'?22:10),0,100);
- if(!x.case&&Math.random()<.012+x.risk*.0025){
+ if(!x.case&&!x.suspension&&!g.suspended&&Math.random()<.012+x.risk*.0025){
   x.case={sequence:Array.from({length:5},()=>rand(1,4)),step:0,errors:0,started:false,season:s.season,week:g.week};news('Investigación de integridad','La liga ha abierto un expediente. Resuelve el desafío antes de volver a jugar.','warning');
  }else x.risk=Math.max(0,x.risk-1);
  delete x.decision; lifestyleEvent(s,news);
 }
 function investigations(s){const x=core(s),c=x.case;return header(s)+panel('Comisión de integridad',c?'<p>Prueba de memoria ficticia: memoriza la secuencia y luego reprodúcela. Dos errores implican sanción.</p>'+(c.started?'<p>Progreso '+c.step+' / '+c.sequence.length+' · Errores '+c.errors+' / 2</p><div class="wh13-options">'+[1,2,3,4].map(n=>btn(''+n,'answer','data-id="'+n+'"','primary')).join('')+'</div>':'<div class="wh13-sequence">'+c.sequence.map(n=>'<b>'+n+'</b>').join('')+'</div>'+btn('He memorizado','start-case','','primary')):'<p>No tienes investigaciones abiertas.</p>')+panel('Historial disciplinario',x.cases.map(c=>'<p>Temporada '+c.season+' · J'+c.week+' · '+esc(c.verdict)+'</p>').join('')||'<p>Sin expedientes resueltos.</p>');}
-function answer(s,n,news){const x=core(s),c=x.case;if(!c?.started)return;if(n===c.sequence[c.step])c.step++;else c.errors++;
+function answer(s,n,news){const x=core(s),c=x.case;if(!c?.started||!Number.isInteger(n)||n<1||n>4)return;if(n===c.sequence[c.step])c.step++;else c.errors++;
  if(c.errors>=2||c.step===c.sequence.length){const lost=c.errors>=2;c.verdict=lost?'Culpable · 5 partidos':'Expediente cerrado';if(lost){x.suspension+=5;const w=E.initWorld(s);w.popularity=Math.max(0,w.popularity-20);w.coachTrust=Math.max(0,w.coachTrust-8);}x.cases.unshift(c);delete x.case;x.risk=0;news(lost?'Sanción disciplinaria':'Expediente cerrado',lost?'Suspendido 5 partidos. Popularidad −20.':'Has superado el desafío de integridad.','warning');}
 }
 function stake(){return Number(document.getElementById('wh13-casino-stake')?.value);}
@@ -115,7 +115,7 @@ function blackjack(s,act){const x=core(s);let b=x.bj;
  if(act==='split'){if(b.hands.length>=4||h.cards.length!==2||h.cards[0].rank!==h.cards[1].rank||!debit(s,h.stake,'Blackjack · dividir'))return;const second=h.cards.pop(),ace=second.rank===1;h.cards.push(b.deck.pop());h.split=true;h.done=ace||bjValue(h.cards)===21;const h2={cards:[second,b.deck.pop()],stake:h.stake,split:true};h2.done=ace||bjValue(h2.cards)===21;b.hands.splice(b.index+1,0,h2);}
  advanceBJ(s,b);
 }
-function roulette(s,id){const amount=stake();if(!/^(n(?:[0-9]|[12][0-9]|3[0-6])|red|black|even|odd|low|high|d[123]|c[123])$/.test(id)||!debit(s,amount,'Ruleta · apuesta'))return 'Importe inválido.';const n=rand(0,36);let mult=0;if(id[0]==='n')mult=n===Number(id.slice(1))?36:0;else if(n!==0){if(id==='red')mult=red.has(n)?2:0;else if(id==='black')mult=!red.has(n)?2:0;else if(id==='even'||id==='odd')mult=(n%2===0)===(id==='even')?2:0;else if(id==='low'||id==='high')mult=(n<=18)===(id==='low')?2:0;else if(id[0]==='d')mult=Math.ceil(n/12)===+id[1]?3:0;else if(id[0]==='c')mult=(n-1)%3+1===+id[1]?3:0;}credit(s,amount*mult,'Ruleta · retorno');core(s).roulette={n,message:'Número '+n+' · retorno '+money(amount*mult)};}
+function roulette(s,id){const amount=stake();if(!/^(n(?:[0-9]|[12][0-9]|3[0-6])|red|black|even|odd|low|high|d[123]|c[123])$/.test(id)||!debit(s,amount,'Ruleta · apuesta'))return 'Importe inválido.';const n=rand(0,36);let mult=0;if(/^n\d/.test(id))mult=n===Number(id.slice(1))?36:0;else if(n!==0){if(id==='red')mult=red.has(n)?2:0;else if(id==='black')mult=!red.has(n)?2:0;else if(id==='even'||id==='odd')mult=(n%2===0)===(id==='even')?2:0;else if(id==='low'||id==='high')mult=(n<=18)===(id==='low')?2:0;else if(id[0]==='d')mult=Math.ceil(n/12)===+id[1]?3:0;else if(id[0]==='c')mult=(n-1)%3+1===+id[1]?3:0;}credit(s,amount*mult,'Ruleta · retorno');core(s).roulette={n,message:'Número '+n+' · retorno '+money(amount*mult)};}
 const bacVal=c=>c.rank>=10?0:c.rank;
 const bacTotal=cs=>cs.reduce((a,c)=>a+bacVal(c),0)%10;
 function baccarat(s,id){const amount=stake();if(!['player','banker','tie'].includes(id)||!debit(s,amount,'Baccarat · apuesta'))return 'Importe inválido.';const d=deck(),p=[d.pop(),d.pop()],b=[d.pop(),d.pop()];let pt=bacTotal(p),bt=bacTotal(b);if(pt<8&&bt<8){let third=null;if(pt<=5){const c=d.pop();p.push(c);third=bacVal(c);}if(third===null?bt<=5:bt<=2||bt===3&&third!==8||bt===4&&third>=2&&third<=7||bt===5&&third>=4&&third<=7||bt===6&&[6,7].includes(third))b.push(d.pop());}pt=bacTotal(p);bt=bacTotal(b);const win=pt===bt?'tie':pt>bt?'player':'banker',mult=win===id?(id==='tie'?9:id==='banker'?1.95:2):win==='tie'&&id!=='tie'?1:0;credit(s,round(amount*mult),'Baccarat · retorno');core(s).baccarat={player:p,banker:b,message:'Jugador '+pt+' · Banca '+bt+' · retorno '+money(amount*mult)};}
@@ -143,9 +143,9 @@ for(const [cat,icon,base,names,editions] of catalog)for(let i=0;i<names.length;i
  candidates.push({id:'v13-'+cat.charCodeAt(0)+'-'+catalog.findIndex(a=>a[0]===cat)+'-'+i+'-'+j,name:names[i]+' · '+editions[j],price,category:cat,icon,pop,confidence,risk,desc:'+'+pop+' popularidad · +'+confidence+' confianza · riesgo '+risk+'/10'});
 }
 // Round-robin by category keeps every category represented.
-const buckets=catalog.map(c=>candidates.filter(i=>i.category===c[0]));while(E.items.length<300&&buckets.some(b=>b.length))for(const b of buckets){if(E.items.length>=300)break;if(b.length)E.items.push(b.shift());}
+const buckets=catalog.map(c=>{const items=candidates.filter(i=>i.category===c[0]);return items.filter((_,i)=>i%c[4].length===0).concat(items.filter((_,i)=>i%c[4].length!==0));});while(E.items.length<300&&buckets.some(b=>b.length))for(const b of buckets){if(E.items.length>=300)break;if(b.length)E.items.push(b.shift());}
 const oldBuy=E.buy;
-E.buy=function(s,id){const item=E.items.find(i=>i.id===id),r=oldBuy(s,id);if(r?.ok&&item?.category){const c=E.initWorld(s);c.popularity=clamp(c.popularity+item.pop,0,100);c.coachTrust=clamp(c.coachTrust+item.confidence,0,100);s.fans+=item.pop*120;if(c.lastPurchase)c.lastPurchase.popularity=item.pop;}return r;};
+E.buy=function(s,id){const item=E.items.find(i=>i.id===id),r=oldBuy(s,id);if(r?.ok&&item?.category){const c=E.initWorld(s);c.popularity=clamp(c.popularity+item.pop,0,100);c.coachTrust=clamp(c.coachTrust+item.confidence,0,100);s.fans=(s.fans||0)+item.pop*120;if(c.lastPurchase)c.lastPurchase.popularity=item.pop;}return r;};
 function shop(s){const x=core(s),cat=x.shopCat||'Todos',c=wallet(s),all=E.items.filter(i=>cat==='Todos'||(i.category||'Originales')===cat),page=clamp(x.shopPage||0,0,Math.max(0,Math.ceil(all.length/24)-1));return '<div class="wh13-options">'+['Todos','Originales',...catalog.map(c=>c[0])].map(n=>btn(esc(n),'shop-cat','data-id="'+esc(n)+'"',cat===n?'primary':'ghost')).join('')+'</div><p>'+all.length+' artículos · página '+(page+1)+' / '+Math.max(1,Math.ceil(all.length/24))+'</p><div class="life-shop-grid">'+all.slice(page*24,page*24+24).map(i=>'<article class="life-item"><div class="wh13-product">'+(i.icon||'★')+'</div><h3>'+esc(i.name)+'</h3><p>'+esc(i.desc)+'</p><strong>'+money(i.price)+'</strong><p>'+(c.owned.includes(i.id)?'Adquirido':V.available(s,i)?'<button class="btn primary" data-action="buy-life" data-id="'+esc(i.id)+'">Comprar</button>':'Bloqueado · saldo o progreso insuficiente')+'</p></article>').join('')+'</div>'+btn('Anterior','shop-page','data-id="-1" '+(page===0?'disabled':''))+btn('Siguiente','shop-page','data-id="1" '+(page>=Math.ceil(all.length/24)-1?'disabled':''));}
 function lifestyleEvent(s,news){const c=E.initWorld(s),x=core(s),owned=E.items.filter(i=>i.category&&c.owned.includes(i.id));if(!owned.length||Math.random()>.13)return;const item=owned[rand(0,owned.length-1)],cat=item.category;let text='',delta=0;
  if(['Automóviles','Motocicletas'].includes(cat)&&Math.random()<item.risk*.035){const days=rand(1,4);s.player.injury=Math.max(s.player.injury||0,days);text='Accidente con '+item.name+' · recuperación de '+days+' partidos.';}
@@ -159,7 +159,7 @@ function action(s,act,el,news){
  const x=core(s),id=el.dataset.id;
  switch(act){case 'select':select(s,id);break;case 'clear':x.slip=[];break;case 'place':return place(s,Number(document.getElementById('wh13-stake')?.value));case 'decision':decision(s,id);break;
  case 'casino-tab':x.casinoTab=id;break;case 'roulette':return roulette(s,id);case 'baccarat':return baccarat(s,id);
- case 'start-case':if(x.case)x.case.started=true;break;case 'answer':answer(s,+id,news);break;
+ case 'start-case':if(x.case&&!x.case.started)x.case.started=true;break;case 'answer':answer(s,+id,news);break;
  case 'shop-cat':x.shopCat=id;x.shopPage=0;break;case 'shop-page':x.shopPage=Math.max(0,(x.shopPage||0)+Number(id));break;
  default:if(act.startsWith('bj-'))return blackjack(s,act.slice(3));
  }
