@@ -9,9 +9,9 @@ const rand=n=>Math.floor(Math.random()*n);
 const modes={timing:{title:'Triple bajo presión',icon:'🏀',stat:'shooting',description:'Encesta tres tiros. La zona se estrecha y el cursor acelera en cada intento.'},passing:{title:'Circulación de balón',icon:'🤝',stat:'playmaking',description:'Pasa al compañero libre indicado antes de que termine cada posesión.'},shooting:{title:'Concurso de tiro',icon:'🎯',stat:'shooting',description:'Toca la canasta iluminada antes de que cambie de posición. Suma tantos puntos como puedas en 15 segundos.'},defense:{title:'Defensa 1 contra 1',icon:'🛡️',stat:'defense',description:'Observa la finta y el hombro del atacante. Cierra su trayectoria antes de que arranque.'},steal:{title:'Intercepción',icon:'⚡',stat:'defense',description:'Lee la dirección del pase y toca el carril antes de que el balón llegue.'},pickroll:{title:'Pick and roll',icon:'🧠',stat:'playmaking',description:'Lee la cobertura defensiva y elige la mejor respuesta.'},rebound:{title:'Batalla por el rebote',icon:'💪',stat:'athleticism',description:'Observa el rebote y ocupa la zona de caída antes de que aterrice el balón.'}};
 const byStat={shooting:['timing','shooting'],playmaking:['passing','pickroll'],defense:['defense','steal'],athleticism:['rebound','shooting']};
 const combineModes=['shooting','passing','defense','pickroll','timing','rebound'];
-let game=null,timer=null;
+let game=null,timer=null,ready=null;
 const now=()=>Date.now();
-function stop(){if(timer!==null)clearInterval(timer);timer=null;game=null;}
+function stop(){if(timer!==null)clearInterval(timer);timer=null;game=null;ready=null;}
 function make(mode,skill=70,names=[],callback=()=>{},clock=now,rng=Math.random){
  if(!modes[mode])mode='timing';
  return {mode,skill:clamp(skill,1,99),names:names.slice(0,4),callback,clock,rng,round:0,hits:0,points:0,attempts:0,history:[],started:clock(),roundStarted:clock(),target:0,done:false,locked:false};
@@ -76,7 +76,10 @@ function tick(){
  if(g.mode==='shooting'&&elapsed>=780){setup(g);draw();return;}
  if(g.mode!=='shooting'&&remaining<=0){const r=step(g,-1,true);if(r)finish(g,r);else draw();}
 }
-function start(mode,skill,names,cb){stop();game=make(mode,skill,names,cb);setup(game);draw();timer=setInterval(tick,35);}
+function start(mode,skill,names,cb){stop();const m=modes[mode]||modes.timing;ready={mode,skill,names,cb};const root=document.querySelector('#modal-root');if(!root){ready=null;return;}root.innerHTML='<div class="modal-backdrop v7-backdrop"><section class="modal-card v7-arcade" role="dialog" aria-modal="true"><div class="v6-kicker">PREPARACIÓN · TIEMPO EN PAUSA</div><h2>'+m.icon+' '+esc(m.title)+'</h2><p>'+esc(m.description)+'</p><p>El cronómetro no empieza hasta que pulses Listo.</p><button class="btn primary" type="button" data-v7-ready>¡Listo! Empezar</button></section></div>';document.body.classList.add('modal-open');}
+function launchReady(){if(!ready)return;const r=ready;ready=null;game=make(r.mode,r.skill,r.names,r.cb);setup(game);draw();timer=setInterval(tick,35);}
+document.addEventListener('click',e=>{if(!e.target.closest('[data-v7-ready]')||!ready)return;e.preventDefault();e.stopImmediatePropagation();launchReady();},true);
+document.addEventListener('keydown',e=>{if(ready&&e.key==='Escape'){e.preventDefault();e.stopImmediatePropagation();}},true);
 function input(i){if(!game)return;const g=game,r=step(g,i);if(r)finish(g,r);else draw();}
 document.addEventListener('click',e=>{const b=e.target.closest('[data-v7-input],[data-v7-forfeit]');if(!b||!game)return;e.preventDefault();e.stopImmediatePropagation();if(b.hasAttribute('data-v7-forfeit')){const g=game;finish(g,{...result(g),accuracy:0,success:false});}else input(Number(b.dataset.v7Input));},true);
 document.addEventListener('keydown',e=>{if(game&&e.key==='Escape'){e.preventDefault();e.stopImmediatePropagation();const g=game;finish(g,{...result(g),accuracy:0,success:false});}},true);
@@ -91,8 +94,8 @@ const activities={
  mediate:{icon:'🤝',name:'Mediar en un conflicto',cost:8,base:.57,good:[12,0,12,10],bad:[-12,0,-9,-8],text:'Intentar resolver tensiones'},
  film:{icon:'🎬',name:'Estudiar al rival',cost:7,base:.72,good:[4,0,6,5],bad:[-3,-4,-3,-2],text:'Analizar jugadas y preparar el partido'}
 };
-function weekKey(s){return s.season+':'+s.world.week;}
-function available(s){const v=V.core(s);return s.world.phase==='regular'&&!v.helped[weekKey(s)];}
+function weekKey(s){return s.season+':'+s.world.week+(s.world.phase==='playoffs'?':p'+s.world.playoffs.round:'');}
+function available(s){const v=V.core(s);return ['regular','playoffs'].includes(s.world.phase)&&!v.helped[weekKey(s)];}
 function chance(s,p,a){const v=V.core(s);return clamp(a.base+(p.bond-50)*.003+(v.chemistry-60)*.002+(s.player.skills.playmaking-65)*.0015,.25,.96);}
 function act(s,name,id,rng=Math.random){const v=V.core(s),p=v.players[name],a=activities[id];if(!a||!p||!available(s)||s.player.energy<a.cost)return null;
  const probability=chance(s,p,a),ok=rng()<probability,[morale,energy,bond,chemistry]=ok?a.good:a.bad;
