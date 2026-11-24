@@ -11,5 +11,8 @@ const direct={'Charly':'https://upload.wikimedia.org/wikipedia/commons/4/4f/Logo
 for(const b of V.sponsors){if(commons[b.name]){b.logo=direct[b.name]||file(commons[b.name]);b.logoSource='https://commons.wikimedia.org/wiki/File:'+encodeURIComponent(commons[b.name].replaceAll(' ','_'));}}
 const aus=["Adelaide-36ers_1719334764.png","Brisbane-Bullets_1719335800.png","Cairns-Taipans_1719335665.png","Illawarra-Hawks_1719335667.jpeg","Melbourne-United_1725790084.png","New-Zealand-Breakers_1721744315.png","Perth-Wildcats_1719335661.png","South-East-Melbourne_1719336233_thumb.jpg","Sydney-Kings_1721744236.png","Tasmania-Jack-Jumpers_1719336892.png"];
 for(const t of D.realTeams.australia||[]){const n=aus[Number(t.id.split('-').pop())];if(n){t.logo='https://scoutbasketball.com/img/teams/images/'+n;t.logoSource=t.logo;}}
+const africa={'angola-0':'Atletico-Petroleos-De-Luanda_1726241170.png','egypt-0':'Al-Ahly_1721745183.png','senegal-1':'Ascvd_1746805528.png','nigeria-16':'maktown-flyers_1778265512.jpg'};
+for(const t of Object.values(D.realTeams).flat()){if(africa[t.id]&&(/petro|al ahly|ville de dakar|maktown/i.test(t.name))){t.logo='https://scoutbasketball.com/img/teams/images/'+africa[t.id];t.logoSource=t.logo;}if(/maktown/i.test(t.name)){t.logo='https://scoutbasketball.com/img/teams/images/maktown-flyers_1778265512.jpg';t.logoSource=t.logo;}}
+const bal=window.WH_V6.competitions.find(x=>x.id==='bal');if(bal)bal.logo='https://scoutbasketball.com/img/competitions/images/Basketball-Africa-League_1653652767.jpg';
 window.WH_LOGOS_V94={brands:commons,teamSources:aus};
 })();
