@@ -49,10 +49,10 @@ async function load(el){if(el.dataset.wh14Started)return;el.dataset.wh14Started=
  const img=el.querySelector('img'),credit=el.querySelector('figcaption'),link=document.createElement('a');link.href=v.page;link.target='_blank';link.rel='noopener noreferrer';link.textContent=(generic?'Imagen de referencia · ':'')+v.author+' · '+v.license;link.title=v.title;
  img.addEventListener('load',()=>{if(!el.isConnected)return;img.hidden=false;el.classList.add('has-photo');credit.replaceChildren(link);credit.hidden=false;},{once:true});
  img.addEventListener('error',()=>{img.hidden=true;el.classList.remove('has-photo');credit.hidden=true;},{once:true});
- img.src=v.src;
+ img.loading='eager';img.src=v.src;
 }
 function hydrate(root){if(!observer&&'IntersectionObserver' in window)observer=new IntersectionObserver(entries=>{for(const e of entries)if(e.isIntersecting){observer.unobserve(e.target);load(e.target);}}, {rootMargin:'150px'});
- for(const el of root.querySelectorAll('[data-wh14-id]:not([data-wh14-started])')){if(observer)observer.observe(el);else load(el);}
+ observer?.disconnect();for(const el of root.querySelectorAll('[data-wh14-id]:not([data-wh14-started])')){if(observer)observer.observe(el);else load(el);}
 }
 window.WH_V14_ART={art,hydrate,subject};
 })();
