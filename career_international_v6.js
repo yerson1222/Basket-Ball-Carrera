@@ -41,7 +41,7 @@ function core(s){
  if(v.teamKey!==s.teamId){v.players={};v.chemistry=65;v.teamKey=s.teamId;}
  if(v.seasonKey!==s.season){v.seasonKey=s.season;v.helped={};v.birthdayMonth=hash(s.player.name)%12;v.annual=[];}
  let names=E.playerNames(team(s.teamId)).filter(n=>n!==s.player.name);
- if(!names.length)names=Array.from({length:8},(_,i)=>'Compañero simulado '+(i+1));
+ if(names.length<2)names=[...names,...Array.from({length:8-names.length},(_,i)=>'Compañero simulado '+(i+1))];
  for(const n of Object.keys(v.players))if(!names.includes(n))delete v.players[n];
  for(const n of names)if(!v.players[n])v.players[n]={morale:60+hash(n)%30,energy:60+hash(n+'e')%35,bond:50};
  return v;
@@ -150,12 +150,12 @@ function rankings(s){
  for(const g of games)for(const [id,score] of [[g.home,g.hs],[g.away,g.as]]){
   const t=team(id),line=id===s.teamId?s.world.playerGames.find(x=>x.stage==='regular'&&x.week===g.week):null;
   let names=E.playerNames(t).filter(n=>n!==s.player.name);if(names.length>9){const offset=((g.week||0)*9)%names.length;names=Array.from({length:9},(_,i)=>names[(offset+i)%names.length]);}
-  if(!names.length)names=Array.from({length:7},(_,i)=>'Rotación '+(i+1));
+  if(!names.length)names=Array.from({length:7},(_,i)=>'Rotación '+(i+1));const help=line?.teammateBoost;if(help?.ok&&!names.includes(help.name)){if(names.length>=9)names[names.length-1]=help.name;else names.push(help.name);}
   let remaining=score;
   if(line&&!line.dnp){const r=row(id,s.player.name,false);r.gp++;for(const k of ['pts','reb','ast','stl','blk'])r[k]+=line[k]||0;remaining=Math.max(0,score-line.pts);}
   const weights=names.map((n,i)=>Math.max(.3,1.6-i*.10+rng(n+g.week)*.9)),sum=weights.reduce((a,b)=>a+b,0);
   let used=0;
-  names.forEach((n,i)=>{const r=row(id,n,n.startsWith('Rotación ')),pts=i===names.length-1?remaining-used:Math.floor(remaining*weights[i]/sum);used+=pts;r.gp++;r.pts+=pts;r.reb+=Math.floor(2+rng(n+g.week+'r')*8);r.ast+=Math.floor(rng(n+g.week+'a')*7);r.stl+=Math.floor(rng(n+g.week+'s')*3);r.blk+=Math.floor(rng(n+g.week+'b')*3);});
+  names.forEach((n,i)=>{const r=row(id,n,n.startsWith('Rotación ')),pts=i===names.length-1?remaining-used:Math.floor(remaining*weights[i]/sum);used+=pts;r.gp++;r.pts+=pts;r.reb+=Math.floor(2+rng(n+g.week+'r')*8);r.ast+=Math.floor(rng(n+g.week+'a')*7);r.stl+=Math.floor(rng(n+g.week+'s')*3);r.blk+=Math.floor(rng(n+g.week+'b')*3);if(help?.ok&&help.name===n&&['ast','reb','stl','blk'].includes(help.stat))r[help.stat]+=help.boost;});
  }
  return [...rows.values()].map(r=>({...r,ppg:r.pts/r.gp,rpg:r.reb/r.gp,apg:r.ast/r.gp,spg:r.stl/r.gp,bpg:r.blk/r.gp,eff:(r.pts+r.reb*1.2+r.ast*1.5+r.stl*2+r.blk*2)/r.gp}));
 }
