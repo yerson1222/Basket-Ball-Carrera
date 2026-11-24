@@ -3,7 +3,8 @@
 'use strict';
 const D=window.WH_DATA,E=window.WH_CAREER,S=window.WH_STORIES,V=window.WH_V6;
 const leagueLogos={nbb:'https://scoutbasketball.com/img/competitions/images/Brazil-Nbb_1721771892.png',china:'https://scoutbasketball.com/img/competitions/images/China-Cba_1653652754.png',lebanon:'https://scoutbasketball.com/img/competitions/images/Lebanon-Division-A_1653652774.jpg',newzealand:'https://scoutbasketball.com/img/competitions/images/New-Zealand-Nbl_1750786654.png',japan:'https://commons.wikimedia.org/wiki/Special:FilePath/B.League%20logo%20(2026).svg',korea:'https://www.footylogos.com/sports-assets/logos/kbl/kbl-logo-footylogos.svg',australia:'https://commons.wikimedia.org/wiki/Special:FilePath/NBL%20Logo.png'};
-for(const l of D.leagues)if(leagueLogos[l.id])l.logo=leagueLogos[l.id];
+Object.assign(leagueLogos,{chi:'https://commons.wikimedia.org/wiki/Special:FilePath/Logo%20Liga%20Uno.png',angola:'https://thebalreport.com/league-logos/angolan-basketball-league.png',philippines:'https://logobase.net/wp-content/uploads/2025/10/PBA-Philippine-Basketball-Association-Logo.webp',senegal:'https://thebalreport.com/league-logos/senegal-nationale-1.png'});
+for(const l of D.leagues)if(leagueLogos[l.id]){l.logo=leagueLogos[l.id];if(l.id==='senegal')l.logoType='federación organizadora';}
 const clamp=(x,a=0,b=100)=>Math.max(a,Math.min(b,x));
 const pick=a=>a[Math.floor(Math.random()*a.length)];
 const esc=x=>String(x??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
