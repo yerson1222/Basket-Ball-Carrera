@@ -6,6 +6,7 @@ const DATA=window.WH_DATA;
 const CAREER=window.WH_CAREER;
 const WORLD_UI=window.WH_UI;
 const ORIGIN=window.WH_ORIGIN;
+const STORIES=window.WH_STORIES;
 let originDraft=null;
 const KEY='worldhoops_save_v1';
 const COLORS=['#b9f16b','#7bc6ff','#ff9c75','#d8a6ff','#64d9c2','#fbd275','#ff8da8','#94a9ff'];
@@ -140,7 +141,7 @@ function playFixture(m,stage,week){const home=club(m.home),away=club(m.away);let
   save.career.contractNotice=true;
   addNews('Tu contrato, bajo presión','El entrenador te advierte: necesitas recuperar la confianza para seguir en este club.','warning');
  }
- CAREER.pay(save);if(save.career)delete save.career.pendingImpact;if(!line.dnp&&line.pts>=30)addNews('¡Actuación estelar!',`${save.player.name} explotó con ${line.pts} puntos frente a ${shortName(op)}.`,'fire');}
+ CAREER.pay(save);STORIES.scheduleInterview(save,line,stage);if(save.career)delete save.career.pendingImpact;if(!line.dnp&&line.pts>=30)addNews('¡Actuación estelar!',`${save.player.name} explotó con ${line.pts} puntos frente a ${shortName(op)}.`,'fire');}
  return result;
 }
 function simulateWeek(){if(!save||save.world.phase!=='regular')return null;
@@ -447,11 +448,20 @@ function renderLife(){
  return pageTitle('Mi estilo de vida','Invierte en tu carrera, recupera energía y toma decisiones fuera de la cancha.')+
  '<div class="life-wallet"><div><small>SALDO DISPONIBLE</small><strong>'+money(c.cash)+'</strong><p>Tu contrato te paga después de cada partido.</p></div><div><small>MEJORAS ADQUIRIDAS</small><strong>'+c.owned.length+' / '+CAREER.items.length+'</strong><p>Las mejoras te acompañan a cualquier equipo.</p></div></div>'+
  '<section class="panel"><div class="section-head"><div><div class="eyebrow">TU INVERSIÓN</div><h2>Entrenamiento, salud y estilo de vida</h2></div></div><div class="life-shop-grid">'+items+'</div></section>'+
- '<section class="panel"><div class="section-head"><div><div class="eyebrow">TU HISTORIA</div><h2>Últimas decisiones</h2></div></div>'+history+'</section>';
+ '<section class="panel"><div class="section-head"><div><div class="eyebrow">TU HISTORIA</div><h2>Últimas decisiones</h2></div></div>'+history+'</section>'+
+ '<section class="panel wh-life-followups"><div class="section-head"><div><div class="eyebrow">CONSECUENCIAS QUE PERDURAN</div><h2>Mis compras y sus historias</h2></div></div>'+
+ (STORIES.core(save).storyQueue.filter(x=>!x.done).map(x=>'<div class="wh-life-due"><strong>'+esc(CAREER.items.find(i=>i.id===x.asset)?.name||'Inversión')+'</strong><span>Nuevo acontecimiento en '+Math.max(0,x.dueAt-STORIES.core(save).totalGames)+' partido(s)</span></div>').join('')||'<p class="muted">Algunas compras desbloquean acontecimientos después de varios partidos.</p>')+'</section>'+
+ '<section class="panel wh-life-followups"><div class="section-head"><div><div class="eyebrow">MI HISTORIA EN LOS MEDIOS</div><h2>Entrevistas y decisiones duraderas</h2></div></div>'+
+ (STORIES.core(save).interviewHistory.slice(0,5).map(x=>'<div class="life-history-row"><span>'+esc(x.answer)+'</span><strong>Popularidad '+(x.pop>=0?'+':'')+x.pop+'</strong></div>').join('')||'<p class="muted">Las entrevistas también construyen tu legado.</p>')+'</section>';
 }
 function requestMatchDecision(phase){
  if(!save)return;
  const w=save.world;
+ const c=STORIES.core(save);
+ if(c.clutchPending){showModal(clutchModal());return;}
+ if(c.pendingStory||STORIES.nextStory(save)){
+  c.storyPhase=phase;STORIES.prepareStory(save);persist();showModal(storyModal());return;
+ }
  if(phase==='regular'&&w.phase!=='regular')return;
  if(phase==='regular'&&CAREER.isTrainingDue(save)){
   CAREER.offerTraining(save);persist();showModal(weeklyTrainingModal());return;
@@ -484,24 +494,107 @@ function requestMatchDecision(phase){
  CAREER.prepare(save,currentTeam(),club(target),phase);
  persist();showModal(careerDecisionModal());
 }
-function chooseMatchDecision(index){
- if(!save||!save.career?.pending)return;
- const phase=save.career.pending.phase;
- const impact=CAREER.resolve(save,index);
- if(!impact)return;
+function completeDecisionMatch(phase,impact){
  let result=null,details='';
- if(phase==='regular'){result=simulateWeek();details='JORNADA '+save.world.week;}
- else{
+ if(phase==='regular'){
+  result=simulateWeek();details='JORNADA '+save.world.week;
+ }else{
   const round=simulatePlayoffRound();
   if(round){result=round.games?.find(x=>x.home===save.teamId||x.away===save.teamId)||null;details=round.stage;}
  }
- addNews(impact.success?'¡Buena decisión!':'Aprender también es parte del juego',impact.action+' · '+impact.day+'. '+impact.details,'spark');
+ if(impact)addNews(impact.success?'¡Buena decisión!':'La decisión tuvo consecuencias',impact.action+' · '+impact.day+'. '+impact.details,'spark');
  persist();render();
  if(result)showModal(resultModal(result,details));
- else{closeModal();toast(impact.success?'¡Buena decisión!':'La siguiente jugada será mejor.');}
+ else{closeModal();toast('La ronda ha terminado.');}
 }
-
-
+function chooseMatchDecision(index){
+ if(!save||!save.career?.pending)return;
+ const career=STORIES.core(save),phase=career.pending.phase,opponent=club(career.pregameOpponent);
+ const impact=CAREER.resolve(save,index);
+ if(!impact)return;
+ if(STORIES.needsClutch(save,phase,opponent)){
+  STORIES.startClutch(save,phase,opponent);persist();showModal(clutchModal());return;
+ }
+ completeDecisionMatch(phase,impact);
+}
+function clutchModal(){
+ const pending=STORIES.core(save).clutchPending;if(!pending)return '';
+ const choices=pending.options.map((a,i)=>'<button class="wh-clutch-choice" type="button" data-action="clutch-choice" data-choice="'+i+'">'+
+ '<strong>'+esc(a.label)+'</strong><small>'+esc(skillName(a.stat))+' '+save.player.skills[a.stat]+'</small></button>').join('');
+ return '<div class="modal-backdrop wh-clutch-backdrop"><div class="modal-card wh-clutch-modal" role="dialog" aria-modal="true" aria-label="Posesión decisiva">'+
+ '<div class="wh-clutch-kicker">ÚLTIMA POSESIÓN · '+(pending.phase==='playoffs'?'PLAYOFFS':'PARTIDO IGUALADO')+'</div>'+
+ '<div class="wh-clutch-score">¡EL PARTIDO SE DECIDE AHORA!</div>'+
+ '<p>Contra '+esc(pending.opponent)+'. Escoge una jugada mientras el indicador pasa por la zona verde del centro. Tu estadística y tu precisión decidirán el desenlace.</p>'+
+ '<div class="wh-clutch-timing"><span class="wh-clutch-target"></span><span class="wh-clutch-cursor"></span></div>'+
+ '<div class="wh-clutch-actions">'+choices+'</div>'+
+ '<small class="wh-clutch-tip">El tiro, el pase o la defensa pueden cambiar varios puntos del marcador. Fallar también tiene consecuencias.</small>'+
+ '</div></div>';
+}
+function pickClutch(index){
+ const phase=STORIES.core(save).clutchPending?.phase;
+ if(!phase)return;
+ const result=STORIES.resolveClutch(save,index);
+ if(!result)return;
+ addNews(result.success?'¡Jugada decisiva!':'Posesión desperdiciada',
+  result.choice+' · precisión '+result.accuracy+'% · '+(result.success?'+'+result.delta:result.delta)+' puntos de impacto','bolt');
+ const impact=STORIES.core(save).pendingImpact;
+ completeDecisionMatch(phase,impact);
+}
+function storyModal(){
+ const ev=STORIES.prepareStory(save);if(!ev)return '';
+ const buttons=ev.options.map((o,i)=>'<button type="button" class="decision-option wh-story-choice" data-action="story-choice" data-choice="'+i+'">'+
+ '<span class="decision-num">0'+(i+1)+'</span><strong>'+esc(o.label)+'</strong></button>').join('');
+ return '<div class="modal-backdrop decision-backdrop wh-story-backdrop"><div class="modal-card decision-dialog wh-story-modal" role="dialog" aria-modal="true" aria-label="Historia de tu carrera">'+
+ '<div class="decision-eyebrow">TU VIDA FUERA DE LA CANCHA · CONSECUENCIA</div>'+
+ '<h2>'+esc(ev.title)+'</h2><p>'+esc(ev.text)+'</p>'+
+ '<div class="decision-options">'+buttons+'</div>'+
+ '<small>Esta situación ocurre porque compraste una mejora anteriormente. Puede alterar tu dinero, popularidad y próximo partido.</small>'+
+ '</div></div>';
+}
+function chooseStory(index){
+ const phase=STORIES.core(save).storyPhase||'regular',event=STORIES.resolveStory(save,index);
+ if(!event)return;
+ addNews(event.title,event.choice+' · Popularidad '+(event.popularity>=0?'+':'')+event.popularity+' · Dinero '+money(event.cash),'spark');
+ persist();showModal(storyResultModal(event,phase));
+}
+function storyResultModal(result,phase){
+ return '<div class="modal-backdrop decision-backdrop"><div class="modal-card decision-dialog wh-story-result" role="dialog" aria-modal="true" aria-label="Consecuencia de decisión">'+
+ '<div class="decision-eyebrow">TU DECISIÓN TIENE CONSECUENCIAS</div><h2>'+esc(result.title)+'</h2><p>'+esc(result.choice)+'</p>'+
+ '<div class="wh-consequence-stats"><span>Popularidad <b>'+(result.popularity>=0?'+':'')+result.popularity+'</b></span>'+
+ '<span>Dinero <b>'+money(result.cash)+'</b></span><span>Energía <b>'+(result.energy>=0?'+':'')+result.energy+'</b></span>'+
+ '<span>Próximo partido <b>'+(result.boost>=0?'+':'')+result.boost+'</b></span></div>'+
+ '<button class="btn primary" type="button" data-action="story-continue" data-phase="'+esc(phase)+'">Volver al partido</button></div></div>';
+}
+function interviewModal(){
+ const interview=STORIES.core(save).interviewPending;if(!interview)return '';
+ const opts=interview.opts.map((o,i)=>'<button class="decision-option wh-interview-choice" type="button" data-action="interview-choice" data-choice="'+i+'">'+
+ '<span class="decision-num">0'+(i+1)+'</span><strong>'+esc(o.label)+'</strong></button>').join('');
+ return '<div class="modal-backdrop decision-backdrop"><div class="modal-card decision-dialog wh-interview-modal" role="dialog" aria-modal="true" aria-label="Entrevista post partido">'+
+ '<div class="decision-eyebrow">RUEDA DE PRENSA · TUS PALABRAS IMPORTAN</div><h2>'+esc(interview.text)+'</h2>'+
+ '<p class="decision-help">Tus respuestas cambian la popularidad, la reputación y la confianza del entrenador. No todas agradarán al vestuario.</p>'+
+ '<div class="decision-options">'+opts+'</div>'+
+ '<button class="btn ghost" data-action="interview-skip" type="button">No dar declaraciones</button></div></div>';
+}
+function chooseInterview(index){
+ const out=STORIES.resolveInterview(save,index);
+ if(!out)return;
+ addNews('Entrevista en la prensa',out.answer+' · Popularidad '+(out.pop>=0?'+':'')+out.pop,'spark');
+ persist();render();showModal(interviewResultModal(out));
+}
+function purchaseModal(data){
+ return '<div class="modal-backdrop decision-backdrop"><div class="modal-card decision-dialog wh-purchase-modal" role="dialog" aria-modal="true" aria-label="Nueva inversión">'+
+ '<div class="decision-eyebrow">UNA NUEVA ETAPA EN TU CARRERA</div><div class="wh-purchase-icon">✦</div>'+
+ '<h2>¡Ya es tuyo: '+esc(data.item)+'!</h2><p>Las grandes decisiones fuera de la cancha traen oportunidades y riesgos. Algunas consecuencias aparecerán varias jornadas después.</p>'+
+ '<div class="wh-consequence-stats"><span>Popularidad <b>+'+data.popularity+'</b></span><span>Inversión <b>'+money(data.cash)+'</b></span></div>'+
+ '<button class="btn primary" type="button" data-action="close-modal">Continuar</button></div></div>';
+}
+function interviewResultModal(out){
+ return '<div class="modal-backdrop decision-backdrop"><div class="modal-card decision-dialog wh-story-result" role="dialog" aria-modal="true" aria-label="Reacción a tus declaraciones">'+
+ '<div class="decision-eyebrow">LOS MEDIOS REACCIONAN</div><h2>Las palabras también cuentan</h2><p>'+esc(out.answer)+'</p>'+
+ '<div class="wh-consequence-stats"><span>Popularidad <b>'+(out.pop>=0?'+':'')+out.pop+'</b></span>'+
+ '<span>Confianza del entrenador <b>'+(out.trust>=0?'+':'')+out.trust+'</b></span></div>'+
+ '<button class="btn primary" data-action="close-modal" type="button">Continuar la carrera</button></div></div>';
+}
 function weeklyTrainingModal(){
  const options=CAREER.offerTraining(save).map((c,i)=>
   '<button type="button" class="wh-training-card '+esc(c.rarity)+'" data-action="training-card" data-card="'+esc(c.id)+'">'+
@@ -588,7 +681,12 @@ document.addEventListener('click',e=>{const el=e.target.closest('[data-action]')
  if(act==='combine-next'){if(!originDraft)return;if(originDraft.index>=ORIGIN.tests.length){ORIGIN.draft(originDraft,DATA.leagues,clubList);showModal(draftOfferModal());}else showModal(combineModal());return;}
  if(act==='accept-draft'){if(originDraft?.offer)createOriginCareer(originDraft.fields,originDraft.offer);return;}
  if(act==='landing-leagues'){showModal(landingLeaguesModal());return;}
- if(act==='close-modal'){if(el.classList.contains('modal-backdrop') && e.target!==el)return;closeModal();return;}
+ if(act==='close-modal'){
+  if(el.classList.contains('modal-backdrop')&&e.target!==el)return;
+  const modal=$('#modal-root');
+  if(save?.career?.interviewPending&&modal?.innerHTML.includes('result-modal')){showModal(interviewModal());return;}
+  closeModal();return;
+ }
  if(act==='toggle-menu'){ui.menu=!ui.menu;render();return;}
  if(act==='nav'){ui.tab=el.dataset.tab;ui.menu=false;render();window.scrollTo(0,0);return;}
  if(!save)return;
@@ -602,6 +700,11 @@ document.addEventListener('click',e=>{const el=e.target.closest('[data-action]')
  if(act==='training-rest'){restTrainingWeek();return;}
  if(act==='pregame-choice'){choosePregameEvent(Number(el.dataset.choice));return;}
  if(act==='decide-game'){chooseMatchDecision(Number(el.dataset.choice));return;}
+ if(act==='clutch-choice'){pickClutch(Number(el.dataset.choice));return;}
+ if(act==='story-choice'){chooseStory(Number(el.dataset.choice));return;}
+ if(act==='story-continue'){requestMatchDecision(el.dataset.phase||'regular');return;}
+ if(act==='interview-choice'){chooseInterview(Number(el.dataset.choice));return;}
+ if(act==='interview-skip'){if(save.career?.interviewPending){delete save.career.interviewPending;save.career.popularity=Math.max(0,save.career.popularity-1);addNews('Sin declaraciones','Decidiste no hablar ante los medios.','activity');persist();}closeModal();render();return;}
  if(act==='go-life'){ui.tab='life';render();window.scrollTo(0,0);return;}
  if(act==='buy-life'){
   const item=CAREER.items.find(x=>x.id===el.dataset.id);
@@ -610,7 +713,7 @@ document.addEventListener('click',e=>{const el=e.target.closest('[data-action]')
   const r=CAREER.buy(save,item.id);
   if(!r.ok)return toast(r.message);
   addNews('Nueva inversión',r.message,'spark');
-  persist();render();toast(r.message);return;
+  persist();render();if(save.career?.lastPurchase)showModal(purchaseModal(save.career.lastPurchase));else toast(r.message);return;
  }
  if(act==='sign'){const offer=save.offers?.find(o=>o.id===el.dataset.offer);if(offer&&window.confirm(`¿Firmar por ${shortName(offer.teamId)} en ${league(offer.leagueId).name} por ${money(offer.salary)} al año?`))nextSeason(offer);return;}
  if(act==='stay'){if(window.confirm(save.origin?.loanActive?'¿Finalizar la cesión y volver a tu club propietario?':'¿Renovar con tu club actual y comenzar otra temporada?'))nextSeason(null);return;}
