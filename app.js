@@ -3,6 +3,7 @@
 (() => {
 'use strict';
 const DATA=window.WH_DATA;
+const V13=window.WH_V13;
 const CAREER=window.WH_CAREER;
 const WORLD_UI=window.WH_UI;
 const ORIGIN=window.WH_ORIGIN;
@@ -140,6 +141,7 @@ function teamScore(a,b,lid,home){
 }
 function calcPlayerGame(teamPts,opponent,lid,round,stage='regular'){
  const p=save.player,ov=playerOverall(),t=currentTeam(),gap=ov-league(lid).quality;const dnp=p.injury>0;
+ const suspended=V13.suspendLine(save,round,stage,opponent);if(suspended)return suspended;
  if(dnp){p.injury--;return {week:round,stage,opponent,pts:0,reb:0,ast:0,stl:0,blk:0,min:0,fg:0,threes:0,dnp:true};}
  const c=CAREER.initWorld(save),min=clamp(Math.round(23+(ov-CAREER.teamStrength(t))*.55+(c.coachTrust-50)*.2+rand(-4,4)),5,40);
  const shots=clamp(13+(p.skills.shooting-65)*.25+gap*.15+(p.style==='scorer'?4:0),4,32);
@@ -166,7 +168,7 @@ function calcPlayerGame(teamPts,opponent,lid,round,stage='regular'){
   line.blk=clamp(line.blk+impact.blk,0,10);
   line.decision={action:impact.action,day:impact.day,success:impact.success,details:impact.details,clutch:impact.clutch||null};
  }
- return line;
+ return V13.alterLine(save,line,teamPts);
 }
 function playFixture(m,stage,week){const home=club(m.home),away=club(m.away);let hs=teamScore(home,away,save.leagueId,true),as=teamScore(away,home,save.leagueId,false);
  const impact=save.career?.pendingImpact;
@@ -181,6 +183,7 @@ function playFixture(m,stage,week){const home=club(m.home),away=club(m.away);let
   if(m.home===save.teamId)hs=clamp(hs+delta,53,170);else as=clamp(as+delta,53,170);
  }
  const live=save.liveMatch;if(live?.state==='done'&&live.home===m.home&&live.away===m.away&&live.season===save.season&&live.week===save.world.week){hs=live.hs;as=live.as;}
+ if(m.home===save.teamId)hs=V13.alterScore(save,hs);else if(m.away===save.teamId)as=V13.alterScore(save,as);
  if(hs===as){if(Math.random()<.5)hs+=randint(2,9);else as+=randint(2,9);}
  const result={home:m.home,away:m.away,hs,as,stage,week,winner:hs>as?m.home:m.away};
  if(m.home===save.teamId||m.away===save.teamId){const op=m.home===save.teamId?m.away:m.home;const mine=m.home===save.teamId?hs:as,other=m.home===save.teamId?as:hs;const line=calcPlayerGame(mine,op,save.leagueId,week,stage);const help=v12Help();if(help){line.teammateBoost={name:help.name,stat:help.stat,boost:help.boost,score:help.score,label:help.label,ok:help.ok};addNews('Impacto del vestuario',help.name+' · '+(help.ok?'+'+help.boost+' '+help.label.toLowerCase()+' en este partido.':'La actividad no produjo mejora.'),help.ok?'spark':'warning');delete save.career.v12Help;}line.win=mine>other;line.teamScore=mine;line.opponentScore=other;save.world.playerGames.push(line);save.world.lastMatch={...result,player:line};
@@ -190,7 +193,7 @@ function playFixture(m,stage,week){const home=club(m.home),away=club(m.away);let
   save.career.contractNotice=true;
   addNews('Tu contrato, bajo presión','El entrenador te advierte: necesitas recuperar la confianza para seguir en este club.','warning');
  }
- CAREER.pay(save);STORIES.scheduleInterview(save,line,stage);if(save.career)delete save.career.pendingImpact;if(!line.dnp&&line.pts>=30)addNews('¡Actuación estelar!',`${save.player.name} explotó con ${line.pts} puntos frente a ${shortName(op)}.`,'fire');}
+ CAREER.pay(save);V13.settle(save,result,line,addNews);STORIES.scheduleInterview(save,line,stage);if(save.career)delete save.career.pendingImpact;if(!line.dnp&&line.pts>=30)addNews('¡Actuación estelar!',`${save.player.name} explotó con ${line.pts} puntos frente a ${shortName(op)}.`,'fire');}
  return result;
 }
 function simulateWeek(){if(!save||save.world.phase!=='regular')return null;
@@ -277,10 +280,10 @@ function pageTitle(title,subtitle=''){return `<div class="page-header"><div><div
 function navItem(tab,label,sym){return `<button class="nav-item ${ui.tab===tab?'active':''}" data-action="nav" data-tab="${tab}">${ico(sym,20)}<span>${label}</span>${WORLD_UI.badge(save,tab)}${ui.tab===tab?'<i class="active-dot"></i>':''}</button>`;}
 function shell(){const t=currentTeam(),l=league(save.leagueId);return `<div class="app-shell wh-animate ${ui.menu?'menu-open':''}"><div class="mobile-scrim" data-action="toggle-menu"></div><aside class="sidebar">
   <div class="brand"><span class="brand-ball">◉</span><span>WORLD<span class="brand-light">HOOPS</span><small>CAREER UNIVERSE</small></span></div>
-  <div class="side-label">MENÚ PRINCIPAL</div><nav class="side-nav" aria-label="Menú principal">${navItem('home','Mi carrera','home')}${navItem('match','Partidos','court')}${navItem('odds','Cuotas prepartido','chart')}${navItem('leagues','Ligas del mundo','globe')}${navItem('market','Mercado','transfer')}${navItem('stats','Mi jugador','chart')}${navItem('life','Mi estilo de vida','spark')}${navItem('sponsors','Patrocinios','transfer')}${navItem('international','Internacional','globe')}${navItem('team',v12NeedList().length?'Mi equipo •':'Mi equipo','court')}${navItem('leaders','Estadísticas de liga','chart')}${navItem('legacy','Mi legado','trophy')}</nav>
+  <div class="side-label">MENÚ PRINCIPAL</div><nav class="side-nav" aria-label="Menú principal">${navItem('home','Mi carrera','home')}${navItem('match','Partidos','court')}${navItem('odds','Apuestas deportivas','chart')}${navItem('casino','Casino','spark')}${navItem('integrity','Investigaciones','warning')}${navItem('leagues','Ligas del mundo','globe')}${navItem('market','Mercado','transfer')}${navItem('stats','Mi jugador','chart')}${navItem('life','Mi estilo de vida','spark')}${navItem('sponsors','Patrocinios','transfer')}${navItem('international','Internacional','globe')}${navItem('team',v12NeedList().length?'Mi equipo •':'Mi equipo','court')}${navItem('leaders','Estadísticas de liga','chart')}${navItem('legacy','Mi legado','trophy')}</nav>
   <div class="sidebar-bottom"><div class="sidebar-profile"><span class="mini-avatar">${esc(avatar(save.player.name))}</span><span class="side-person"><b>${esc(save.player.name)}</b><small>${esc(save.player.position)} · ${esc(l.flag)} ${esc(l.name)}</small></span><span class="online-dot"></span></div><div class="side-foot">VERSIÓN 12.0 ${ico('disk',14)}</div></div>
-  </aside><main class="main"><div class="topbar"><div class="topbar-left"><button class="icon-btn mobile-menu" data-action="toggle-menu" aria-label="Abrir menú">${ico('menu',22)}</button><span class="crumb">WORLD HOOPS <span>/</span> ${esc(({home:'MI CARRERA',match:'PARTIDOS',odds:'CUOTAS PREPARTIDO',leagues:'LIGAS',market:'MERCADO',stats:'JUGADOR',life:'ESTILO DE VIDA',legacy:'LEGADO',sponsors:'PATROCINIOS',international:'INTERNACIONAL',team:'MI EQUIPO',leaders:'ESTADÍSTICAS DE LIGA',speed:'VELOCIDAD DE SIMULACIÓN'})[ui.tab])}</span></div><div class="topbar-right"><span class="time-tag">${ico('calendar',15)} ${save.year}</span><div class="top-profile">${teamLogo(t,'sm')}<span>${esc(t.name)}</span></div>${settingsButton()}</div></div><div class="page-content">${renderPage()}</div><footer class="footer">WORLD HOOPS <span>·</span> Tu carrera. Tu legado.</footer></main></div>`;}
-function renderPage(){const pages={speed:()=>pageTitle('Velocidad de simulación','Elige cómo quieres avanzar en tu carrera.')+speedPanel(),home:renderHome,match:renderMatches,odds:()=>pageTitle('Cuotas prepartido','Consulta las previsiones ficticias del próximo encuentro.')+v12Odds(),leagues:renderLeagues,market:renderMarket,stats:renderStats,life:renderLife,sponsors:()=>pageTitle('Patrocinios','Construye tu marca personal y cumple objetivos comerciales.')+V8.sponsorPanel(save),legacy:()=>renderLegacy()+V8.achievementPanel(save),international:()=>pageTitle('Internacional','Compite por tu selección, tu club y el All-Star.')+V6.cupPanel(save),team:()=>pageTitle('Mi equipo','Construye tu relación con el vestuario.')+v12TeamPanel(),leaders:()=>pageTitle('Estadísticas de liga','Compara tu rendimiento con todos los jugadores simulados.')+V6.board(save,v6Metric)};return (pages[ui.tab]||pages.home)();}
+  </aside><main class="main"><div class="topbar"><div class="topbar-left"><button class="icon-btn mobile-menu" data-action="toggle-menu" aria-label="Abrir menú">${ico('menu',22)}</button><span class="crumb">WORLD HOOPS <span>/</span> ${esc(({home:'MI CARRERA',match:'PARTIDOS',odds:'APUESTAS DEPORTIVAS',casino:'CASINO',integrity:'INVESTIGACIONES',leagues:'LIGAS',market:'MERCADO',stats:'JUGADOR',life:'ESTILO DE VIDA',legacy:'LEGADO',sponsors:'PATROCINIOS',international:'INTERNACIONAL',team:'MI EQUIPO',leaders:'ESTADÍSTICAS DE LIGA',speed:'VELOCIDAD DE SIMULACIÓN'})[ui.tab])}</span></div><div class="topbar-right"><span class="time-tag">${ico('calendar',15)} ${save.year}</span><div class="top-profile">${teamLogo(t,'sm')}<span>${esc(t.name)}</span></div>${settingsButton()}</div></div><div class="page-content">${renderPage()}</div><footer class="footer">WORLD HOOPS <span>·</span> Tu carrera. Tu legado.</footer></main></div>`;}
+function renderPage(){const pages={speed:()=>pageTitle('Velocidad de simulación','Elige cómo quieres avanzar en tu carrera.')+speedPanel(),home:renderHome,match:renderMatches,odds:()=>pageTitle('Apuestas deportivas','Mercados y boletos de tu carrera ficticia.')+V13.book(save,fixtureFor(save.world.phase),club,league),casino:()=>pageTitle('Casino','Juegos de azar con el saldo ficticio de tu carrera.')+V13.casino(save),integrity:()=>pageTitle('Investigaciones','Expedientes y sanciones de la liga.')+V13.investigations(save),leagues:renderLeagues,market:renderMarket,stats:renderStats,life:renderLife,sponsors:()=>pageTitle('Patrocinios','Construye tu marca personal y cumple objetivos comerciales.')+V8.sponsorPanel(save),legacy:()=>renderLegacy()+V8.achievementPanel(save),international:()=>pageTitle('Internacional','Compite por tu selección, tu club y el All-Star.')+V6.cupPanel(save),team:()=>pageTitle('Mi equipo','Construye tu relación con el vestuario.')+v12TeamPanel(),leaders:()=>pageTitle('Estadísticas de liga','Compara tu rendimiento con todos los jugadores simulados.')+V6.board(save,v6Metric)};return (pages[ui.tab]||pages.home)();}
 function nextFixture(){const w=save.world;if(w.phase!=='regular')return null;const match=(w.rounds[w.week]||[]).find(m=>m.home===save.teamId||m.away===save.teamId);return match?{...match,opponent:match.home===save.teamId?match.away:match.home}:null;}
 function plotGames(games){const data=games.filter(g=>!g.dnp).slice(-9);if(!data.length)return `<div class="empty-chart">Tus primeros puntos están por llegar.</div>`;const max=Math.max(30,...data.map(x=>x.pts));return `<div class="chart-bars">${data.map((g,i)=>`<div class="bar-column" title="${g.pts} puntos · partido ${i+1}"><div class="bar-value">${g.pts}</div><div class="bar-track"><div class="bar-fill" style="height:${Math.max(6,(g.pts/max*100))}%;--delay:${i*50}ms"></div></div><small>${g.stage==='regular'?'J'+g.week:g.stage==='final'?'F':'SF'}</small></div>`).join('')}</div>`;}
 function newsItems(max=4){return (save.news||[]).slice(0,max).map(n=>`<div class="news-item"><div class="news-icon">${ico(n.type,18)}</div><div><strong>${esc(n.title)}</strong><p>${esc(n.description)}</p><small>TEMP. ${n.season} · JORNADA ${n.week}</small></div></div>`).join('');}
@@ -494,7 +497,7 @@ function animateLive(){
  },430);
 }
 function beginLive(phase,impact,forceTitle){
- const f=fixtureFor(phase),title=forceTitle||important(phase,f);if(!title||save.player.injury>0||!f)return false;
+ const f=fixtureFor(phase),title=forceTitle||important(phase,f);if(!title||save.player.injury>0||V13.core(save).suspension>0||V13.mode(save)==='fix'||!f)return false;
  if(save.liveMatch){showLive();return true;}
  const h=club(f.home),a=club(f.away);let hs=teamScore(h,a,save.leagueId,true),as=teamScore(a,h,save.leagueId,false);const delta=(impact?.scoreDelta||0)+(impact?.moodPts||0);
  if(f.home===save.teamId)hs=clamp(hs+delta,53,170);else as=clamp(as+delta,53,170);
@@ -517,7 +520,8 @@ function nextLive(){
  if(g.state==='done'){completeDecisionMatch(g.phase,STORIES.core(save).pendingImpact);}
 }
 function runSimulation(n){
- if(!save)return;const w=save.world,c=STORIES.core(save),v=V6.core(save);
+ if(!save)return;
+ if(V13.core(save).case||V13.core(save).suspension||V13.mode(save)!=='clean'||V13.core(save).tickets.some(t=>t.state==='pendiente')){requestMatchDecision(save.world.phase);return;}const w=save.world,c=STORIES.core(save),v=V6.core(save);
  const sp=speed();if(sp==='1'||w.phase!=='regular'||save.liveMatch||c.pending||c.pendingImpact||c.pregame||c.clutchPending||c.interviewPending||c.pendingStory||STORIES.nextStory(save)||v.celebrations.length||important('regular')){requestMatchDecision(w.phase==='playoffs'?'playoffs':'regular');return;}
  const goal=sp==='all'?w.rounds.length-w.week:Number(sp);let played=0,last=null,reason='',pauseEvent=false;
  for(let i=0;i<goal&&w.phase==='regular';i++){
@@ -537,6 +541,7 @@ function runSimulation(n){
    if(STORIES.needsClutch(save,'regular',club(target))){reason='Posesión decisiva';break;}
   }
   const previous=save.player.injury;last=simulateWeek();played++;persist();
+  if(V13.core(save).case){reason='Investigación';break;}
   if(save.player.injury>previous){reason='Lesión';break;}
   if(v.celebrations.length||c.interviewPending||STORIES.nextStory(save)){reason='Evento importante';break;}
  }
@@ -577,7 +582,7 @@ function trainingChoiceModal(skill){
 }
 function renderLife(){
  const c=CAREER.init(save);
- const items=V92.shop(save);
+ const items=V13.shop(save);
  const history=c.log.slice(0,5).map(h=>'<div class="life-history-row"><span>'+esc(h.day)+' · '+esc(h.club)+'</span><strong>'+esc(h.success?'Acertaste':'No salió')+'</strong></div>').join('')||'<p class="muted">Tu historia se está escribiendo en la cancha.</p>';
  return pageTitle('Mi estilo de vida','Invierte en tu carrera, recupera energía y toma decisiones fuera de la cancha.')+
  '<div class="life-wallet"><div><small>SALDO DISPONIBLE</small><strong>'+money(c.cash)+'</strong><p>Tu contrato te paga después de cada partido.</p></div><div><small>MEJORAS ADQUIRIDAS</small><strong>'+c.owned.length+' / '+CAREER.items.length+'</strong><p>Las mejoras te acompañan a cualquier equipo.</p></div></div>'+
@@ -590,6 +595,7 @@ function renderLife(){
 }
 function requestMatchDecision(phase){
  if(!save)return;
+ if(V13.core(save).case){closeModal();ui.tab='integrity';render();toast('Resuelve la investigación antes de continuar.');return;}
  const w=save.world;
  const c=STORIES.core(save);
  if(save.liveMatch){showLive();return;}
@@ -618,7 +624,7 @@ function requestMatchDecision(phase){
   const games=w.playoffs.semis||[];
   if(games.some(m=>m.winner===save.teamId))target=games.find(m=>m.winner!==save.teamId)?.winner;
  }
- if(!target||save.player.injury>0){
+ if(!target||save.player.injury>0||V13.core(save).suspension>0){
   if(phase==='regular'){const r=simulateWeek();persist();render();if(r)showModal(resultModal(r,'JORNADA '+save.world.week));}
   else{const r=simulatePlayoffRound();persist();render();if(r)showModal(resultModal(r.games?.find(x=>x.home===save.teamId||x.away===save.teamId)||null,r.stage));}
   return;
@@ -822,6 +828,7 @@ document.addEventListener('click',e=>{const el=e.target.closest('[data-action]')
  if(act==='toggle-menu'){ui.menu=!ui.menu;render();return;}
  if(act==='nav'){ui.tab=el.dataset.tab;ui.menu=false;render();refreshVisibleLeagueData();window.scrollTo(0,0);return;}
  if(!save)return;
+ if(act.startsWith('v13-')){const message=V13.action(save,act.slice(4),el,addNews);persist();render();if(message)toast(message);return;}
  if(act==='v10-speed'){if(['1','3','5','all'].includes(el.dataset.speed)){save.simSpeed=el.dataset.speed;persist();render();if($('#modal-root')?.querySelector('.wh-settings-modal')){showModal(settingsModal());}toast('Velocidad de simulación guardada');}return;}
  if(act==='v10-choice'){chooseLive(Number(el.dataset.choice));return;}
  if(act==='v10-next'){nextLive();return;}
