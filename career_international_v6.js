@@ -40,7 +40,9 @@ function core(s){
  const v=c.v6;
  if(v.teamKey!==s.teamId){v.players={};v.chemistry=65;v.teamKey=s.teamId;}
  if(v.seasonKey!==s.season){v.seasonKey=s.season;v.helped={};v.birthdayMonth=hash(s.player.name)%12;v.annual=[];}
- const names=E.playerNames(team(s.teamId)).filter(n=>n!==s.player.name).slice(0,10);
+ let names=E.playerNames(team(s.teamId)).filter(n=>n!==s.player.name).slice(0,18);
+ if(!names.length)names=Array.from({length:8},(_,i)=>'Compañero simulado '+(i+1));
+ for(const n of Object.keys(v.players))if(!names.includes(n))delete v.players[n];
  for(const n of names)if(!v.players[n])v.players[n]={morale:60+hash(n)%30,energy:60+hash(n+'e')%35,bond:50};
  return v;
 }
