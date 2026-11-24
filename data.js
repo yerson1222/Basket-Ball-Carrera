@@ -156,3 +156,6 @@ window.WH_DATA.realTeams.bsn[11].logo='assets/teams/bsn/vaqueros_bayamon.png';
   if(team&&reference?.players?.length){team.players=[...reference.players];team.rosterSource=reference.rosterSource;}
  }
 })();
+
+/* Fichajes ACB 2026-27 (fuente acb.com) */
+(function(){const data={"0":["Jilson Bango"],"1":["Márcio Santos"],"3":["Dominykas Stenionis"],"7":["Justin Minaya","Killian Hayes"],"9":["Eli John Ndiaye"],"12":["Nick Smith Jr."],"13":["Sekou Doumbouya"],"15":["Matt Thomas"],"16":["Nikola Mirotic"]};for(const [index,names] of Object.entries(data)){const club=window.WH_DATA.realTeams.acb?.[Number(index)];if(club&&!club.players?.length){club.players=names;club.rosterSource='acb.com 2026-27';}}})();
