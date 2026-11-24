@@ -184,10 +184,10 @@ function opponents(s,t){
  return pool.map(x=>x.name);
 }
 function rival(s,t){const pool=opponents(s,t);return pool.length?pool[hash(t.id+s.season+t.round)%pool.length]:'Selección invitada';}
-function play(s,id,stat,timing){
+function play(s,id,stat,timing,skillSuccess){
  const t=tournament(s,id),v=core(s);if(!t||t.status!=='active'||!stats.includes(stat)||s.player.injury>0||s.player.energy<10)return null;
  const opponent=rival(s,t),chance=clamp(.32+s.player.skills[stat]*.004+(timing-.5)*.42+(v.chemistry-60)*.0015,.12,.93);
- const clutch=Math.random()<chance;let other=78+Math.floor(Math.random()*28),score=other+(clutch?2+Math.floor(timing*7):-2-Math.floor((1-timing)*7));
+ const clutch=typeof skillSuccess==='boolean'?skillSuccess:Math.random()<chance;let other=78+Math.floor(Math.random()*28),score=other+(clutch?2+Math.floor(timing*7):-2-Math.floor((1-timing)*7));
  const line={opponent,score,other,win:score>other,clutch,accuracy:Math.round(timing*100),pts:Math.round(7+ovr(s)*.15+timing*8),ast:stat==='playmaking'?7:3,reb:stat==='athleticism'?9:4};
  t.results.push(line);t.round++;s.player.energy=clamp(s.player.energy-8);s.player.xp+=line.win?18:8;
  if(t.kind==='star'){t.status='played';if(line.win&&line.pts>=24)award(s,'MVP All-Star',t.name);}
