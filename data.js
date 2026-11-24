@@ -136,3 +136,23 @@ window.WH_DATA.realTeams.bsn[11].logo='assets/teams/bsn/vaqueros_bayamon.png';
  const teams=window.WH_DATA.realTeams.italy||[];
  teams.forEach((team,i)=>{if(rosters[i]){team.players=rosters[i];team.rosterSource='OA Sport 2026-27';}});
 })();
+
+/* Nombres documentados Francia Alemania EuroLeague 2026-27 */
+(function(){
+ const D=window.WH_DATA;
+ const curated={
+  france:{0:['Patty Mills','Jae Crowder','Hugo Besson'],11:['Nadir Hifi','Jared Rhoden','Tyson Etienne']},
+  germany:{0:['Yankuba Sima','Brandon Angel','Jordan Ford'],1:['Duane Washington','Oscar Da Silva','MarJon Beauchamp']}
+ };
+ for(const [league,teams] of Object.entries(curated)){
+  for(const [i,players] of Object.entries(teams)){
+   const team=D.realTeams[league]?.[Number(i)];
+   if(team&&!team.players?.length){team.players=players;team.rosterSource='BeBasket 2026-27';}
+  }
+ }
+ const links={6:['germany',1],9:['france',0],11:['italy',1],14:['france',11],18:['italy',13]};
+ for(const [i,[lid,tidx]] of Object.entries(links)){
+  const team=D.realTeams.euroleague?.[Number(i)],reference=D.realTeams[lid]?.[tidx];
+  if(team&&reference?.players?.length){team.players=[...reference.players];team.rosterSource=reference.rosterSource;}
+ }
+})();
