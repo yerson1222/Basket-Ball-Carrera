@@ -5,6 +5,8 @@
 const DATA=window.WH_DATA;
 const CAREER=window.WH_CAREER;
 const WORLD_UI=window.WH_UI;
+const ORIGIN=window.WH_ORIGIN;
+let originDraft=null;
 const KEY='worldhoops_save_v1';
 const COLORS=['#b9f16b','#7bc6ff','#ff9c75','#d8a6ff','#64d9c2','#fbd275','#ff8da8','#94a9ff'];
 const $=s=>document.querySelector(s);
@@ -286,9 +288,112 @@ function renderLegacy(){const totals=careerTotals(),hist=save.history||[],awards
  <div class="kpi-grid"><div class="kpi"><div class="kpi-top">TEMPORADAS ${ico('calendar',18)}</div><strong>${save.season}</strong><small>Desde ${save.history.length?save.history[save.history.length-1].year:save.year}</small></div><div class="kpi"><div class="kpi-top">PUNTOS TOTALES ${ico('target',18)}</div><strong>${fmt(totals.pts)}</strong><small>${totals.games} partidos jugados</small></div><div class="kpi"><div class="kpi-top">TÍTULOS ${ico('trophy',18)}</div><strong>${totals.titles}</strong><small>Campeonatos ganados</small></div><div class="kpi"><div class="kpi-top">INGRESOS TOTALES ${ico('transfer',18)}</div><strong class="money-kpi">${money(save.earnings)}</strong><small>Contratos cobrados</small></div></div>
  <div class="columns columns-main"><section class="panel"><div class="section-head"><div><div class="eyebrow">UN CAPÍTULO CADA AÑO</div><h2>Historial de temporadas</h2></div></div>${hist.length?`<div class="history-list">${hist.map(h=>`<article class="history-item"><span class="history-year">${h.year}</span><div><b>${esc(h.team)}</b><small>${esc(h.league)} · ${h.wins} V / ${h.losses} D · puesto #${h.rank}</small><div class="history-stats">${h.stats.ppg.toFixed(1)} PTS · ${h.stats.rpg.toFixed(1)} REB · ${h.stats.apg.toFixed(1)} AST</div></div>${h.champion?`<span class="history-cup">${ico('trophy',20)}</span>`:statusPill(`#${h.rank}`)}</article>`).join('')}</div>`:`<div class="empty-state">${ico('calendar',30)}<strong>Tu primera temporada está en marcha</strong><p>Completa los playoffs para registrar tu primer año profesional.</p></div>`}</section><div class="col-stack"><section class="panel"><div class="section-head"><div><div class="eyebrow">VITRINA PERSONAL</div><h2>Premios y reconocimientos</h2></div></div>${awards.length?`<div class="awards">${awards.map(a=>`<div class="award">${ico('medal',24)}<div><b>${esc(a.title)}</b><small>${a.year} · ${esc(a.team)}</small></div></div>`).join('')}</div>`:`<div class="empty-state">${ico('medal',30)}<strong>Los trofeos te esperan</strong><p>Conquista títulos y consigue distinciones con tu juego.</p></div>`}</section>
  <section class="panel save-panel"><div class="section-head"><div><div class="eyebrow">TU PARTIDA</div><h2>Guardar y administrar</h2></div></div><p>La carrera se guarda automáticamente en este navegador. Exporta un archivo JSON para llevarla a otro dispositivo.</p><div class="save-buttons">${actionButton(ico('download',17)+' Exportar partida','export','outline')}${actionButton('Importar partida','import','ghost')}${actionButton('Nueva carrera','reset','danger')}</div><input type="file" id="save-import" accept=".json,application/json" hidden></section></div></div>`;}
+function createOriginCareer(fields,path){
+ let teamPick=path;
+ if(path.mode==='random')teamPick=ORIGIN.randomClub(DATA.leagues,clubList);
+ if(path.mode==='academy'){
+  if(!league(fields.league)||!club(fields.team)||!fields.team.startsWith(fields.league+'-'))return toast('Escoge un club válido.');
+  const loan=ORIGIN.loanClub(fields.league,fields.team,DATA.leagues,clubList);
+  teamPick={...loan,mode:'academy',parentTeamId:fields.team,parentLeagueId:fields.league};
+ }
+ if(!teamPick||!club(teamPick.teamId)||!league(teamPick.leagueId))return toast('No se pudo encontrar el club de destino.');
+ const personal={...fields,league:teamPick.leagueId,team:teamPick.teamId};
+ createCareer(personal);
+ if(!save)return;
+ const c=CAREER.initWorld(save);
+ save.origin={mode:teamPick.mode,started:2026};
+ if(teamPick.mode==='draft'){
+  save.origin={...save.origin,region:teamPick.region,combineScore:teamPick.score,grade:teamPick.grade.name,gradeLetter:teamPick.grade.letter,combineHistory:[...(originDraft?.history||[])]};
+  const focus=({scorer:'shooting',playmaker:'playmaking',defender:'defense',athlete:'athleticism'})[save.player.style]||'shooting';
+  const bonus=teamPick.skillBonus||0;
+  for(const key of Object.keys(save.player.skills))save.player.skills[key]=clamp(save.player.skills[key]+Math.floor(bonus/2),1,94);
+  save.player.skills[focus]=clamp(save.player.skills[focus]+bonus,1,94);
+  c.coachTrust=clamp(34+Math.round(teamPick.performance*.19),34,55);
+  addNews('Seleccionado en el draft',save.player.name+' impresionó en el combine ('+teamPick.score+'/120) y fue elegido por '+shortName(save.teamId)+'.','trophy');
+ }else if(teamPick.mode==='academy'){
+  save.origin.parentTeamId=teamPick.parentTeamId;save.origin.parentLeagueId=teamPick.parentLeagueId;save.origin.loanTeamId=teamPick.teamId;save.origin.loanLeagueId=teamPick.leagueId;save.origin.loanActive=true;save.origin.loanDuration=1;
+  c.coachTrust=34;
+  addNews('Cesión juvenil confirmada',shortName(teamPick.parentTeamId)+' conserva tu contrato. '+shortName(teamPick.teamId)+' te recibe cedido para ganar experiencia.','transfer');
+ }else{
+  c.coachTrust=46;
+  addNews('¡Destino sorpresa!',save.player.name+' viajará para empezar su carrera con '+shortName(save.teamId)+'.','spark');
+ }
+ save.salary=salaryEstimate(save.leagueId,playerOverall());
+ originDraft=null;persist();render();toast(teamPick.mode==='draft'?'¡Fuiste elegido en el draft!':teamPick.mode==='academy'?'¡Cesión confirmada!':'¡Tu destino está decidido!');
+}
+function loanStatusBanner(){
+ if(!save?.origin?.loanActive)return '';
+ const p=club(save.origin.parentTeamId),l=club(save.origin.loanTeamId);
+ return '<section class="wh-loan-banner"><div class="wh-loan-tag">JOVEN PROMESA · CESIÓN ACTIVA</div><h3>Tu futuro pertenece a '+esc(p?.name||'tu club')+'</h3><p>Esta temporada juegas cedido en <strong>'+esc(l?.name||'otro equipo')+'</strong>. Gana minutos y experiencia antes de regresar.</p></section>';
+}
 function landing(){const leagues=DATA.leagues.length;return `<div class="landing"><div class="landing-top"><div class="brand"><span class="brand-ball">◉</span><span>WORLD<span class="brand-light">HOOPS</span><small>CAREER UNIVERSE</small></span></div><span class="version-chip">V3.0 · GLOBAL</span></div><main class="landing-main"><div class="landing-left"><div class="eyebrow"><span class="eyebrow-line"></span> EL MUNDO ES TU CANCHA</div><h1>DE CERO<br>A <span>LEYENDA.</span></h1><p>Crea tu jugador. Empieza desde abajo. Domina las canchas del planeta y escribe tu propia historia en el basketball profesional.</p><div class="landing-cta">${actionButton('Crear mi jugador '+ico('arrow',19),'start-career')}${actionButton('Explorar las ligas','landing-leagues','outline')}</div><div class="landing-features"><div><strong>${leagues}</strong><small>LIGAS</small></div><div><strong>6</strong><small>CONTINENTES</small></div><div><strong>${DATA.leagues.reduce((n,l)=>n+clubList(l.id).length,0)}</strong><small>CLUBES</small></div></div></div><div class="landing-right"><div class="landing-glow"></div><div class="intro-ball"><span class="ball-circle"></span><span class="ball-curve-a"></span><span class="ball-curve-b"></span><span class="ball-line"></span></div><div class="hero-floating card-1"><small>PLAYER RATING</small><strong>99 <span>OVR</span></strong><em>EL POTENCIAL NO TIENE LÍMITES</em></div><div class="hero-floating card-2">${ico('trophy',25)}<div><strong>MAKE HISTORY</strong><small>YOUR CAREER. YOUR RULES.</small></div></div></div></main><div class="landing-bottom"><div>${ico('globe',18)} UNA CARRERA GLOBAL · ${leagues} COMPETICIONES</div><span>100% LOCAL · SIN REGISTRO · PC Y MÓVIL</span></div></div>`;}
 function landingLeaguesModal(){return `<div class="modal-backdrop" data-action="close-modal"><div class="modal-card world-modal" role="dialog" aria-modal="true" aria-label="Ligas del mundo"><div class="modal-head"><div><div class="eyebrow">UN MUNDO POR CONQUISTAR</div><h2>${DATA.leagues.length} ligas en 6 continentes</h2><p>Elige tu próxima liga y conquista las canchas del mundo.</p></div><button class="icon-btn" data-action="close-modal" aria-label="Cerrar">${ico('close',22)}</button></div><div class="world-modal-list">${DATA.continents.map(c=>`<section><h3><span style="color:${c.accent}">${c.symbol}</span> ${c.name}</h3><div>${DATA.leagues.filter(l=>l.continent===c.id).map(l=>`<div><span>${l.flag} ${esc(l.name)}</span><small>${esc(l.country)}</small></div>`).join('')}</div></section>`).join('')}</div><button type="button" class="btn primary create-submit" data-action="start-career">Crear mi jugador ${ico('arrow',17)}</button></div></div>`;}
-function createModal(){const defaultLeague='gleague';return `<div class="modal-backdrop" data-action="close-modal"><div class="modal-card creation" role="dialog" aria-modal="true" aria-labelledby="creation-title"><div class="modal-head"><div><div class="eyebrow">TU HISTORIA EMPIEZA AQUÍ</div><h2 id="creation-title">Crea a tu próxima estrella</h2><p>Elige dónde empieza tu primera temporada.</p></div><button class="icon-btn" data-action="close-modal" aria-label="Cerrar">${ico('close',22)}</button></div><form id="career-form"><div class="form-grid"><label class="field field-full"><span>Nombre del jugador</span><input name="name" required maxlength="24" minlength="2" placeholder="Ej. Alex Rivera" autocomplete="off" autofocus value="Alex Rivera"></label><label class="field"><span>País de origen</span><select name="country">${DATA.countries.map(c=>`<option ${c==='México'?'selected':''} value="${esc(c)}">${esc(c)}</option>`).join('')}</select></label><label class="field"><span>Edad inicial</span><select name="age">${[17,18,19,20,21].map(x=>`<option ${x===18?'selected':''} value="${x}">${x} años</option>`).join('')}</select></label><label class="field"><span>Posición</span><select name="position">${DATA.positions.map(x=>`<option value="${x.id}">${x.name}</option>`).join('')}</select></label><label class="field"><span>Tu estilo</span><select name="style">${DATA.styles.map(x=>`<option value="${x.id}">${x.name} · ${x.desc}</option>`).join('')}</select></label><label class="field"><span>Liga donde comenzar</span><select id="career-league" name="league">${DATA.continents.map(c=>`<optgroup label="${c.name}">${DATA.leagues.filter(l=>l.continent===c.id).map(l=>`<option ${l.id===defaultLeague?'selected':''} value="${l.id}">${l.flag} ${esc(l.name)} (${esc(l.country)})</option>`).join('')}</optgroup>`).join('')}</select></label><label class="field"><span>Tu primer equipo</span><select id="career-team" name="team">${clubList(defaultLeague).map(c=>`<option value="${c.id}">${esc(c.name)}${c.affiliate?' · '+esc(shortName(c.affiliate)):''}</option>`).join('')}</select></label></div><div class="modal-hint">${ico('spark',18)} Tu próximo club puede estar en cualquier parte del mundo. Elige tu destino.</div><button class="btn primary create-submit" type="submit">Empezar mi carrera ${ico('arrow',19)}</button></form></div></div>`;}
+function originChoiceModal(){
+ return '<div class="modal-backdrop" data-action="close-modal"><div class="modal-card wh-origin-modal" role="dialog" aria-modal="true" aria-label="Elegir inicio de carrera">'+
+ '<div class="modal-head"><div><div class="eyebrow">WORLD HOOPS · NUEVA CARRERA</div><h2>¿Cómo empieza tu historia?</h2><p>Tres caminos. Tú decides cómo llegar a la élite.</p></div><button class="icon-btn" data-action="close-modal" aria-label="Cerrar">'+ico('close',22)+'</button></div>'+
+ '<div class="wh-origin-paths">'+
+ '<button class="wh-origin-path" type="button" data-action="origin-mode" data-mode="random"><span class="wh-path-number">A</span><strong>Destino sorpresa</strong><p>Un equipo aleatorio de cualquier liga del planeta. Empieza sin saber dónde jugarás.</p><small>CLUB ALEATORIO MUNDIAL →</small></button>'+
+ '<button class="wh-origin-path" type="button" data-action="origin-mode" data-mode="draft"><span class="wh-path-number">B</span><strong>Camino al draft</strong><p>Elige una región, participa en seis pruebas de baloncesto y consigue un equipo según tu actuación.</p><small>MINIJUEGO DE EVALUACIÓN →</small></button>'+
+ '<button class="wh-origin-path" type="button" data-action="origin-mode" data-mode="academy"><span class="wh-path-number">C</span><strong>Cantera y cesión</strong><p>Elige tu equipo soñado, firma como joven promesa y juega cedido para ganar experiencia.</p><small>ELIGE CLUB · PRÉSTAMO JUVENIL →</small></button></div></div></div>';
+}
+function createModal(mode='random'){
+ if(!['random','draft','academy'].includes(mode))mode='random';
+ const defaultLeague='gleague';
+ const modeTitle={random:'Destino sorpresa',draft:'Evaluación para el draft',academy:'Contrato juvenil y cesión'}[mode];
+ const destination=mode==='academy'?
+ '<label class="field"><span>Club que te fichará</span><select id="career-league" name="league">'+DATA.continents.map(c=>'<optgroup label="'+esc(c.name)+'">'+DATA.leagues.filter(l=>l.continent===c.id).map(l=>'<option '+(l.id===defaultLeague?'selected':'')+' value="'+esc(l.id)+'">'+esc(l.flag+' '+l.name)+'</option>').join('')+'</optgroup>').join('')+'</select></label>'+
+ '<label class="field"><span>Club propietario</span><select id="career-team" name="team">'+clubList(defaultLeague).map(t=>'<option value="'+esc(t.id)+'">'+esc(t.name)+'</option>').join('')+'</select></label>':
+ mode==='draft'?
+ '<label class="field field-full"><span>Región del draft</span><select name="region">'+DATA.continents.map(c=>'<option value="'+esc(c.id)+'">'+esc(c.symbol+' '+c.name)+'</option>').join('')+'</select></label>':
+ '<div class="wh-origin-field-info">Un ojeador elegirá una liga y un club al azar entre todos los destinos disponibles.</div>';
+ const submit=mode==='draft'?'Comenzar las seis pruebas':mode==='academy'?'Firmar y buscar cesión':'Descubrir mi destino';
+ return '<div class="modal-backdrop" data-action="close-modal"><div class="modal-card creation wh-origin-form" role="dialog" aria-modal="true" aria-labelledby="creation-title">'+
+ '<div class="modal-head"><div><div class="eyebrow">COMIENZO DE CARRERA · '+esc(modeTitle.toUpperCase())+'</div><h2 id="creation-title">Crea a tu jugador</h2><p>'+(mode==='academy'?'Tu club te cederá durante la primera temporada.':mode==='draft'?'Tus pruebas decidirán tu nivel y qué equipo te selecciona.':'Deja que el mundo del baloncesto decida tu próximo destino.')+'</p></div><button class="icon-btn" data-action="close-modal">'+ico('close',22)+'</button></div>'+
+ '<form id="career-form" data-origin="'+mode+'"><div class="form-grid">'+
+ '<label class="field field-full"><span>Nombre del jugador</span><input name="name" required maxlength="24" minlength="2" placeholder="Ej. Alex Rivera" autocomplete="off" value="Alex Rivera"></label>'+
+ '<label class="field"><span>País de origen</span><select name="country">'+DATA.countries.map(c=>'<option '+(c==='México'?'selected':'')+' value="'+esc(c)+'">'+esc(c)+'</option>').join('')+'</select></label>'+
+ '<label class="field"><span>Edad inicial</span><select name="age">'+[16,17,18,19,20,21].map(n=>'<option '+(n===18?'selected':'')+' value="'+n+'">'+n+' años</option>').join('')+'</select></label>'+
+ '<label class="field"><span>Posición</span><select name="position">'+DATA.positions.map(p=>'<option value="'+esc(p.id)+'">'+esc(p.name)+'</option>').join('')+'</select></label>'+
+ '<label class="field"><span>Estilo de juego</span><select name="style">'+DATA.styles.map(v=>'<option value="'+esc(v.id)+'">'+esc(v.name)+' · '+esc(v.desc)+'</option>').join('')+'</select></label>'+
+ destination+'</div><div class="modal-hint">'+ico('spark',18)+' '+(mode==='draft'?'La puntería y tus elecciones tácticas determinan la evaluación.':mode==='academy'?'Empezarás como suplente y tu club decidirá cuándo recuperarte.':'Tu primer equipo será una sorpresa mundial.')+'</div>'+
+ '<div class="wh-form-buttons"><button type="button" class="btn ghost" data-action="origin-back">Cambiar camino</button><button type="submit" class="btn primary create-submit">'+esc(submit)+' '+ico('arrow',18)+'</button></div></form></div></div>';
+}
+function combineModal(){
+ if(!originDraft)return '';
+ const test=ORIGIN.activeTest(originDraft),idx=originDraft.index;
+ if(!test)return '';
+ originDraft.stepStarted=Date.now();
+ return '<div class="modal-backdrop wh-combine-backdrop"><div class="modal-card wh-combine-modal" role="dialog" aria-modal="true" aria-label="Minijuego del draft">'+
+ '<div class="decision-eyebrow">COMBINE · '+(idx+1)+' / '+ORIGIN.tests.length+'</div>'+
+ '<div class="wh-combine-progress"><span style="width:'+((idx)/ORIGIN.tests.length*100)+'%"></span></div>'+
+ '<h2>'+esc(test.title)+'</h2><p>'+esc(test.text)+'</p>'+
+ '<div class="wh-timing-zone"><div class="wh-timing-label"><strong>PUNTERÍA</strong><span>Elige cuando la barra pase por el centro</span></div>'+
+ '<div class="wh-timing-track"><div class="wh-timing-green"></div><div class="wh-timing-needle"></div></div></div>'+
+ '<div class="wh-combine-choices">'+test.choices.map((o,i)=>'<button type="button" class="wh-combine-option" data-action="combine-choice" data-choice="'+i+'"><strong>'+esc(o.label)+'</strong><small>'+esc(({shooting:'TIRO',playmaking:'PASES',defense:'DEFENSA',athleticism:'FÍSICO'})[o.stat])+' · '+Math.round(ORIGIN.probability(originDraft,o)*100)+'% base</small></button>').join('')+'</div>'+
+ '<div class="wh-combine-score">PUNTOS DE EVALUACIÓN <strong>'+originDraft.score+' / 120</strong></div>'+
+ '<button type="button" class="btn ghost" data-action="origin-back">Abandonar combine</button></div></div>';
+}
+function combineResultModal(out){
+ const done=originDraft.index>=ORIGIN.tests.length;
+ return '<div class="modal-backdrop wh-combine-backdrop"><div class="modal-card wh-combine-modal wh-combine-result" role="dialog" aria-modal="true" aria-label="Resultado del combine">'+
+ '<div class="decision-eyebrow">RESULTADO DE PRUEBA '+originDraft.index+' / '+ORIGIN.tests.length+'</div>'+
+ '<h2>'+esc(out.success?'¡Prueba superada!':'Hay que seguir mejorando')+'</h2>'+
+ '<p>'+esc(out.test)+' · '+esc(out.label)+'</p>'+
+ '<div class="wh-combine-outcome"><strong>+'+out.score+' PUNTOS</strong><span>Puntería: '+out.timing+'%</span></div>'+
+ '<div class="wh-combine-score">TOTAL DEL COMBINE <strong>'+originDraft.score+' / 120</strong></div>'+
+ '<button class="btn primary create-submit" type="button" data-action="combine-next">'+(done?'Ver resultado del draft':'Siguiente prueba')+' '+ico('arrow',17)+'</button></div></div>';
+}
+function draftOfferModal(){
+ if(!originDraft?.offer)return '';
+ const r=originDraft.offer,l=league(r.leagueId),t=club(r.teamId);
+ return '<div class="modal-backdrop wh-combine-backdrop"><div class="modal-card wh-combine-modal wh-draft-offer" role="dialog" aria-modal="true" aria-label="Resultado del draft">'+
+ '<div class="decision-eyebrow">RESULTADOS · DRAFT MUNDIAL</div>'+
+ '<div class="wh-draft-grade">'+esc(r.grade.letter)+'</div><h2>'+esc(r.grade.rank)+'</h2>'+
+ '<p>Conseguiste <strong>'+r.score+' de 120 puntos</strong> en el combine. ¡Un equipo quiere ficharte!</p>'+
+ '<div class="wh-draft-team">'+teamLogo(t,'lg')+'<div><strong>'+esc(t.name)+'</strong><small>'+esc(l.name)+' · '+esc(l.country)+'</small></div></div>'+
+ '<p class="decision-help">Comenzarás como joven promesa. Tu actuación definirá los minutos que recibas.</p>'+
+ '<button type="button" class="btn primary create-submit" data-action="accept-draft">Aceptar selección y empezar '+ico('arrow',17)+'</button></div></div>';
+}
 function resultModal(result,details){const p=save.world.lastMatch?.player;return `<div class="modal-backdrop" data-action="close-modal"><div class="modal-card result-modal" role="dialog" aria-modal="true" aria-label="Resultado del partido"><button class="icon-btn modal-close" data-action="close-modal" aria-label="Cerrar">${ico('close',21)}</button><div class="result-kicker">${ico('court',20)} ${esc(details||'FINAL DEL PARTIDO')}</div>${result&&p?`<div class="result-teams"><div>${teamLogo(club(result.home),'lg')}<b>${esc(club(result.home)?.city)}</b></div><div class="result-score"><strong>${result.hs} <span>:</span> ${result.as}</strong><small>FINAL</small></div><div>${teamLogo(club(result.away),'lg')}<b>${esc(club(result.away)?.city)}</b></div></div><h2>${result.winner===save.teamId?'¡VICTORIA!':'A SEGUIR LUCHANDO'}</h2><p>${p.dnp?'No jugaste este encuentro por lesión.':`Gran trabajo. Tus números en la cancha: ${p.pts} puntos, ${p.reb} rebotes y ${p.ast} asistencias.`}</p>`:`<div class="result-big-icon">${ico('trophy',48)}</div><h2>${esc(details||'Ronda completada')}</h2><p>Consulta el calendario y tu rendimiento para conocer todos los resultados.</p>`}<button class="btn primary create-submit" data-action="close-modal">Continuar ${ico('arrow',18)}</button></div></div>`;}
 function showModal(html){$('#modal-root').innerHTML=html;document.body.classList.add('modal-open');}
 function closeModal(){const root=$('#modal-root');if(root)root.innerHTML='';document.body.classList.remove('modal-open');}
@@ -456,11 +561,23 @@ function choosePregameEvent(index){
 
 function exportSave(){const blob=new Blob([JSON.stringify(save,null,2)],{type:'application/json'}),url=URL.createObjectURL(blob),a=document.createElement('a');a.href=url;a.download=`WorldHoops_${save.player.name.replace(/[^a-z\d]/gi,'_')}_Temporada${save.season}.json`;document.body.appendChild(a);a.click();a.remove();URL.revokeObjectURL(url);toast('Partida exportada correctamente.');}
 async function importSave(file){try{if(!file)return;if(file.size>2e6)throw Error('Archivo demasiado grande');const parsed=JSON.parse(await file.text());if(parsed.version!==1||!parsed.player||!parsed.world||!league(parsed.leagueId)||!club(parsed.teamId)||!Array.isArray(parsed.history))throw Error('Partida no compatible');save=parsed;CAREER.init(save);CAREER.initWorld(save);ui.tab='home';ui.browseContinent=league(save.leagueId).continent;ui.browseLeague=save.leagueId;persist();render();toast('Partida importada.');}catch(e){toast(`No se pudo importar: ${e.message}`);}}
-document.addEventListener('submit',e=>{if(e.target.id==='career-form'){e.preventDefault();const form=new FormData(e.target);const fields=Object.fromEntries(form.entries());if(!fields.name||fields.name.trim().length<2)return toast('Escribe al menos 2 letras.');if(!league(fields.league)||!club(fields.team)||!club(fields.team).id.startsWith(fields.league+'-'))return toast('Selecciona un club válido.');createCareer(fields);}});
+document.addEventListener('submit',e=>{if(e.target.id==='career-form'){e.preventDefault();const form=new FormData(e.target);const fields=Object.fromEntries(form.entries());if(!fields.name||fields.name.trim().length<2)return toast('Escribe al menos 2 letras.');
+ const route=e.target.dataset.origin||'academy';
+ if(route==='draft'){
+  if(!continent(fields.region))return toast('Elige una región válida.');
+  originDraft=ORIGIN.startCombine(fields);showModal(combineModal());return;
+ }
+ if(route==='random'){createOriginCareer(fields,{mode:'random'});return;}
+ if(route==='academy'){createOriginCareer(fields,{mode:'academy'});return;}}});
 document.addEventListener('change',e=>{if(e.target.id==='career-league'){$('#career-team').innerHTML=clubList(e.target.value).map(c=>`<option value="${c.id}">${esc(c.name)}${c.affiliate?' · '+esc(shortName(c.affiliate)):''}</option>`).join('');}if(e.target.id==='save-import')importSave(e.target.files?.[0]);});
 document.addEventListener('keydown',e=>{if(e.key==='Escape')closeModal();});
 document.addEventListener('click',e=>{const el=e.target.closest('[data-action]');if(!el)return;const act=el.dataset.action;
- if(act==='start-career'){showModal(createModal());return;}
+ if(act==='start-career'){showModal(originChoiceModal());return;}
+ if(act==='origin-back'){originDraft=null;showModal(originChoiceModal());return;}
+ if(act==='origin-mode'){showModal(createModal(el.dataset.mode));return;}
+ if(act==='combine-choice'){const result=ORIGIN.attempt(originDraft,Number(el.dataset.choice));if(result)showModal(combineResultModal(result));return;}
+ if(act==='combine-next'){if(!originDraft)return;if(originDraft.index>=ORIGIN.tests.length){ORIGIN.draft(originDraft,DATA.leagues,clubList);showModal(draftOfferModal());}else showModal(combineModal());return;}
+ if(act==='accept-draft'){if(originDraft?.offer)createOriginCareer(originDraft.fields,originDraft.offer);return;}
  if(act==='landing-leagues'){showModal(landingLeaguesModal());return;}
  if(act==='close-modal'){if(el.classList.contains('modal-backdrop') && e.target!==el)return;closeModal();return;}
  if(act==='toggle-menu'){ui.menu=!ui.menu;render();return;}
@@ -490,8 +607,8 @@ document.addEventListener('click',e=>{const el=e.target.closest('[data-action]')
  if(act==='stay'){if(window.confirm('¿Renovar con tu club actual y comenzar otra temporada?'))nextSeason(null);return;}
  if(act==='export'){exportSave();return;}
  if(act==='import'){$('#save-import')?.click();return;}
- if(act==='reset'){if(window.confirm('¿Crear una carrera nueva? Tu partida actual se perderá si no la exportas antes.')){localStorage.removeItem(KEY);save=null;ui.tab='home';render();showModal(createModal());}return;}
+ if(act==='reset'){if(window.confirm('¿Crear una carrera nueva? Tu partida actual se perderá si no la exportas antes.')){localStorage.removeItem(KEY);save=null;ui.tab='home';render();showModal(originChoiceModal());}return;}
 });
 render();
-window.WorldHoopsDebug={getSave:()=>save,simulateWeek:()=>{simulateWeek();persist();render();},simulatePlayoffs:()=>{simulatePlayoffRound();persist();render();},createCareer};
+window.WorldHoopsDebug={getSave:()=>save,simulateWeek:()=>{simulateWeek();persist();render();},simulatePlayoffs:()=>{simulatePlayoffRound();persist();render();},createCareer,createOriginCareer,getDraft:()=>originDraft};
 })();
