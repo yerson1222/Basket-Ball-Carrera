@@ -25,11 +25,14 @@ const group=id=>({cibacopa:'lat',bsn:'lat',arg:'lat',uru:'lat',chi:'lat',col:'la
 const clubs=new Map(Object.values(D.realTeams||{}).flat().map(t=>[t.id,t]));
 function team(id){return clubs.get(id)||{id,name:id,rating:76};}
 const valid=n=>typeof n==='string'&&n.trim().includes(' ')&&!/^(rotaci[oó]n|compañero|jugador|player|reserva|unknown|tbd)\s+\d+/i.test(n.trim());
+// BBL 2026/27 reference: https://www.sportschau.de/live-und-ergebnisse/basketball/deutschland-bbl/ma12415816/ratiopharm-ulm_ewe-baskets-oldenburg/spiel-kader
+const snapshots={"ewe baskets oldenburg":["Jeremy Roach","Nate Johnson","Zachary Ensminger","Ja'Qualyn Gilbreath","Oré Ewert","Djordje Klaric","Noah Wendland","Le'Tre Darthard","Kyle Gruhler","Johann Helwig","Seth Hinrichs","Lazar Klaric","Stefan Momirov","Tylan James Pope","Nicholas Tischler","Joel Harms","Marcel Keßen","Finn Stuehlmeyer","Demajeo Wiggins"],"ratiopharm ulm":["Christopher Anthony Jr.","Adam Atamna","Lucas Fischer","Marvin Heckel","Teo Milicic","Zoran Milicic","Namori Omog","Devin Schmidt","Jaylen Sims","Yanu Slingerland","Mohamed Diakite","Nil Failenschmid","Meissa Faye","Dwayne Koroma","Lenny Liedtke","Michael Rataj","Armel Traore","Ibi Watson","Juom Bol","Simisola Shittu"]};
 const cache=new Map();
 function roster(t){
  if(!t?.id)return [];
  if(cache.has(t.id))return cache.get(t.id);
- const original=uniq((raw(t)||[]).filter(valid).map(n=>n.trim())),names=[...original];
+ const source=snapshots[(clubs.get(t.id)?.name||t.name||'').toLowerCase()]||raw(t)||[];
+ const original=uniq(source.filter(valid).map(n=>n.trim())),names=[...original];
  const l=t.id.split('-').slice(0,-1).join('-'),g=group(l),[first,last]=pools[g].map(x=>x.split(','));
  for(let i=0;names.length<12&&i<300;i++){const a=first[hash(t.id+'f'+i)%first.length],b=last[hash(t.id+'l'+i)%last.length],n=['china','korea'].includes(g)?b+' '+a:a+' '+b;if(!names.includes(n))names.push(n);}
  const out=names.map((name,i)=>({name,reference:original.includes(name),role:i<5?'Titular':i<10?'Rotación':'Reserva',position:['PG','SG','SF','PF','C'][i%5],rating:clamp((t.rating||D.leagues.find(lg=>lg.id===l)?.quality||76)+4-i*.9+Math.round(rnd(name+t.id)*6-3),48,98)}));
@@ -59,7 +62,9 @@ function preview(s,id,week){return roster(team(id)).filter(p=>id!==s.teamId||p.n
 function box(s,g,id,line=null){
  const saved=decode(g,id);if(saved)return saved;
  const existing=g.boxScore?.[id];if(existing)return existing;
- const score=id===g.home?g.hs:g.as,players=preview(s,id,g.week),help=line?.teammateBoost;
+ const score=id===g.home?g.hs:g.as,all=preview(s,id,g.week),help=line?.teammateBoost;
+ const players=all.length<=12?all:all.slice(0,8).concat(Array.from({length:4},(_,i)=>all[8+((g.week-1)*4+i)%(all.length-8)]));
+ if(help?.ok&&!players.some(p=>p.name===help.name)){const target=all.find(p=>p.name===help.name);if(target)players[players.length-1]=target;}
  const remain=Math.max(0,score-(!line?.dnp&&line?line.pts:0));
  const seed=[s.season,g.stage,g.week,id].join(':');
  const rows=players.map((p,i)=>{
