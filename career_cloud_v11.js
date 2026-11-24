@@ -1,0 +1,65 @@
+/* World Hoops V11 cloud saves. Only public project credentials; RLS is enforced by Supabase. */
+(function(){
+'use strict';
+const URL='https://vbbpyfvscqjleyyzcija.supabase.co',KEY='sb_publishable_DqxSzAEprmOQTPjgaZmKQw_E1vzqkUE',SITE='https://yerson1222.github.io/Basket-Ball-Carrera/';
+const META='wh_cloud_binding_v11',BACKUP='wh_cloud_backup_v11';
+const esc=x=>String(x??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+let client=null,session=null,bridge=null,rows=[],meta=null,timer=null,busy=false,job=null,conflict=false,opened=false,status='Guardado local',recovery=false,authBusy=false;
+try{meta=JSON.parse(localStorage.getItem(META));if(!meta||!meta.uid||![1,2,3].includes(meta.slot)||!Number.isInteger(meta.rev))meta=null;}catch{meta=null;}
+function setMeta(m){localStorage.setItem(META,JSON.stringify(m));meta=m;}
+function label(s){status=s;const e=document.querySelector('#wh-cloud-status');if(e)e.textContent=s;for(const b of document.querySelectorAll('[data-wh-cloud-open]'))b.textContent=session?'Mi cuenta · '+(meta?.uid===session.user.id?'Espacio '+meta.slot:'Nube'):'Cuenta y guardado en nube';}
+function valid(s){return !!s&&s.version===1&&s.player&&s.world&&Array.isArray(s.history);}
+function backup(){const s=bridge.get();if(s)localStorage.setItem(BACKUP,JSON.stringify(s));}
+function later(){clearTimeout(timer);if(meta?.dirty&&session?.user.id===meta.uid&&!conflict)timer=setTimeout(()=>flush(),1700);}
+function changed(s){if(!meta||!valid(s))return;try{const saved=JSON.parse(localStorage.getItem(META));if(!saved||saved.uid!==meta.uid||saved.slot!==meta.slot||saved.rev!==meta.rev){conflict=true;label('Otra pestaña cambió el guardado. Abre Cuenta.');return;}setMeta({...meta,dirty:true});label('Cambios guardados en este dispositivo');later();}catch{label('Sincronización pausada: almacenamiento local lleno');}}
+async function write(uid,slot,rev,s){const data={save_data:s,revision:rev+1,updated_at:new Date().toISOString()};let q;if(rev===0)q=client.from('career_saves').insert({user_id:uid,slot,...data}).select('revision');else q=client.from('career_saves').update(data).eq('user_id',uid).eq('slot',slot).eq('revision',rev).select('revision');const {data:out,error}=await q;if(error){if(error.code==='23505')return null;throw error;}return out?.length===1?Number(out[0].revision):null;}
+async function flush(){
+ if(job)return job;if(!client||!session||!meta||session.user.id!==meta.uid||!meta.dirty||conflict||!valid(bridge.get()))return !meta?.dirty;
+ clearTimeout(timer);const m={...meta},snapshot=JSON.stringify(bridge.get());
+ job=(async()=>{try{label('Sincronizando…');const rev=await write(m.uid,m.slot,m.rev,JSON.parse(snapshot));if(meta?.uid!==m.uid||meta.slot!==m.slot||session?.user.id!==m.uid)return false;if(rev===null){conflict=true;label('Hay otra versión en la nube. Abre Cuenta.');return false;}const dirty=JSON.stringify(bridge.get())!==snapshot;setMeta({...meta,rev,dirty});label(dirty?'Cambios pendientes':'Sincronizado en la nube');return !dirty;}catch(e){label('Guardado local · nube no disponible');return false;}})();
+ try{return await job;}finally{job=null;if(meta?.dirty&&!conflict&&status==='Cambios pendientes')later();}
+}
+async function list(){if(!session)return [];const {data,error}=await client.from('career_saves').select('slot,save_data,revision,updated_at').eq('user_id',session.user.id).order('slot');if(error)throw error;return data||[];}
+function textRow(r){const s=r?.save_data;if(!s)return 'Espacio libre';return esc(s.player?.name||'Jugador')+' · Temporada '+esc(s.season)+' · Jornada '+esc(s.world?.week??0);}
+function root(){return document.querySelector('#wh-cloud-root');}
+function message(t){const e=root()?.querySelector('.wh-cloud-msg');if(e)e.textContent=t;}
+function draw(){
+ if(!opened||!root())return;let body='';
+ if(!client)body='<p>No se pudo cargar el servicio de cuentas. Tu partida local sigue disponible.</p>';
+ else if(recovery&&session)body='<form id="wh-cloud-recover"><label>Nueva contraseña<input name="password" type="password" minlength="8" autocomplete="new-password" required></label><button class="btn primary">Actualizar contraseña</button></form>';
+ else if(!session)body='<p>Conserva tu carrera en la nube y continúa en otro dispositivo. También puedes jugar sin cuenta.</p><form id="wh-cloud-auth"><label>Correo electrónico<input type="email" name="email" autocomplete="email" required></label><label>Contraseña<input type="password" name="password" minlength="8" autocomplete="current-password"></label><button class="btn primary" type="submit" value="login">Iniciar sesión</button><button class="btn outline" type="submit" value="register">Crear cuenta</button><button class="btn ghost" type="submit" value="reset">Recuperar contraseña</button></form>';
+ else{const local=bridge.get(),current=meta?.uid===session.user.id;body='<p class="wh-cloud-email">'+esc(session.user.email||'Cuenta activa')+'</p><p>'+esc(status)+'</p><p>Partida de este dispositivo: <b>'+ (local?textRow({save_data:local}):'Sin carrera')+'</b></p>'+(conflict&&current?'<div class="wh-cloud-conflict"><b>Conflicto de versiones</b><p>Hay cambios en otro dispositivo. Elige qué versión conservar. Se conserva una copia local antes de cargar la nube.</p><button class="btn outline" data-wh-cloud="remote">Usar versión de la nube</button><button class="btn outline" data-wh-cloud="local">Conservar esta versión</button></div>':'')+'<div class="wh-cloud-slots">'+[1,2,3].map(slot=>{const r=rows.find(x=>x.slot===slot),active=current&&meta.slot===slot;return '<article><h3>Espacio '+slot+(active?' · Actual':'')+'</h3><p>'+textRow(r)+'</p>'+(r?'<button class="btn primary" data-wh-cloud="load" data-slot="'+slot+'">Continuar carrera</button>':'<button class="btn primary" data-wh-cloud="new" data-slot="'+slot+'">Crear nueva carrera</button>'+(local?'<button class="btn outline" data-wh-cloud="upload" data-slot="'+slot+'">Vincular carrera actual</button>':''))+'</article>';}).join('')+'</div><button class="btn outline" data-wh-cloud="sync">Sincronizar ahora</button><button class="btn ghost" data-wh-cloud="logout">Cerrar sesión</button><p class="wh-cloud-small">Cerrar sesión desvincula el guardado de la nube; la copia de este navegador permanece. No uses un dispositivo compartido para datos privados.</p>';}
+ root().innerHTML='<div class="wh-cloud-overlay"><section class="wh-cloud-dialog" role="dialog" aria-modal="true" aria-label="Cuenta World Hoops"><header><div><small>WORLD HOOPS V11</small><h2>Mi cuenta y carreras</h2></div><button class="btn ghost" data-wh-cloud="close" aria-label="Cerrar">×</button></header><div class="wh-cloud-msg" role="status"></div>'+body+'<button class="btn ghost" data-wh-cloud="close">Volver al juego</button></section></div>';
+}
+async function refresh(){if(session){try{rows=await list();}catch(e){rows=[];draw();message('No se pudieron consultar las partidas. Comprueba conexión y permisos.');return false;}}draw();return true;}
+async function open(){opened=true;draw();await refresh();}
+function close(){opened=false;if(root())root().innerHTML='';}
+async function settle(){if(!meta?.dirty)return true;return await flush();}
+function bind(slot,rev,dirty=false){setMeta({uid:session.user.id,slot,rev,dirty});conflict=false;label(dirty?'Cambios pendientes':'Guardado vinculado');}
+async function action(a,slot){
+ if(a==='close'){close();return;}if(busy||authBusy||!session)return;busy=true;
+ try{
+ if(a==='sync'){if(!meta||meta.uid!==session.user.id){message('Primero vincula o abre una carrera.');return;}if(!meta.dirty&&!conflict){label('Guardado vinculado');await refresh();message('No hay cambios locales pendientes.');return;}const ok=await flush();await refresh();message(ok?'Sincronizado.':'No se pudo sincronizar. Tu progreso sigue en el dispositivo.');return;}
+ if(a==='logout'){if(meta?.dirty&&!await settle()&&!window.confirm('Hay cambios locales sin subir. ¿Cerrar sesión conservando la copia local?'))return;await client.auth.signOut({scope:'local'}).then(r=>{if(r.error)throw r.error;});session=null;setMeta(null);conflict=false;rows=[];label('Guardado local');draw();return;}
+ if(a==='local'||a==='remote'){if(!meta||meta.uid!==session.user.id)return;const r=(await list()).find(x=>x.slot===meta.slot);if(!r)throw Error('El espacio ya no existe en la nube.');if(!window.confirm(a==='local'?'¿Reemplazar la versión de la nube con esta carrera?':'¿Cargar la versión de la nube? Se conservará una copia local.'))return;backup();if(a==='remote'){if(!bridge.valid(r.save_data))throw Error('Partida no compatible');bridge.load(r.save_data);bind(r.slot,Number(r.revision));close();}else{bind(r.slot,Number(r.revision),true);await flush();await refresh();}return;}
+ if(![1,2,3].includes(slot))return;
+ if(meta?.dirty&&!await settle()){message('Resuelve o sincroniza los cambios pendientes antes de cambiar de espacio.');return;}
+ const fresh=await list(),r=fresh.find(x=>x.slot===slot);
+ if(a==='load'){if(!r||!bridge.valid(r.save_data))throw Error('Partida no disponible o incompatible.');if(bridge.get()&&!window.confirm('¿Abrir esta carrera? Conservaremos una copia local de la actual.'))return;backup();bridge.load(r.save_data);bind(slot,Number(r.revision));label('Sincronizado en la nube');close();return;}
+ if(r){await refresh();message('Ese espacio ya está ocupado.');return;}
+ if(a==='upload'){if(!valid(bridge.get()))throw Error('No hay carrera local.');if(!window.confirm('¿Vincular esta carrera al espacio '+slot+'?'))return;bind(slot,0,true);await flush();await refresh();return;}
+ if(a==='new'){if(bridge.get()&&!window.confirm('¿Empezar otra carrera? Se conservará una copia local de la actual.'))return;backup();bridge.clear();bind(slot,0);close();bridge.start();return;}
+ }catch(e){message(e.message||'No se pudo completar la operación.');}finally{busy=false;}
+}
+function detach(){if(!meta)return true;if(job){window.alert('Espera a que termine la sincronización.');return false;}if(meta.dirty&&!window.confirm('Hay cambios sin sincronizar. ¿Desvincular esta carrera y conservar una copia local?'))return false;backup();clearTimeout(timer);setMeta(null);conflict=false;label('Guardado local');return true;}
+function restore(){try{const b=JSON.parse(localStorage.getItem(BACKUP));if(!bridge.valid(b))return false;if(!detach())return false;bridge.load(b);return true;}catch{return false;}}
+function init(b){bridge=b;try{client=window.supabase?.createClient(URL,KEY,{auth:{persistSession:true,autoRefreshToken:true,detectSessionInUrl:true}})||null;}catch{client=null;}
+ if(!client)return;client.auth.onAuthStateChange((event,s)=>{session=s;recovery=event==='PASSWORD_RECOVERY'||(recovery&&!!s);if(meta&&s&&meta.uid!==s.user.id){try{setMeta(null);}catch{}conflict=false;}
+ label(meta?.dirty?'Cambios locales pendientes':session?'Cuenta conectada':'Guardado local');if(session&&meta?.uid===session.user.id&&meta.dirty)later();if(recovery){opened=true;draw();}else if(opened)setTimeout(()=>refresh(),0);});
+ window.addEventListener('online',()=>{if(meta?.dirty)flush();});document.addEventListener('visibilitychange',()=>{if(document.visibilityState==='hidden'&&meta?.dirty)flush();});
+ window.addEventListener('storage',e=>{if(e.key===META||e.key==='worldhoops_save_v1'){if(meta){conflict=true;clearTimeout(timer);label('Otra pestaña modificó la partida. Recarga antes de sincronizar.');}}});
+}
+document.addEventListener('click',e=>{const o=e.target.closest('[data-wh-cloud-open]'),a=e.target.closest('[data-wh-cloud]');if(o){e.preventDefault();open();}else if(a){e.preventDefault();action(a.dataset.whCloud,Number(a.dataset.slot));}});
+document.addEventListener('submit',async e=>{if(!['wh-cloud-auth','wh-cloud-recover'].includes(e.target.id))return;e.preventDefault();if(authBusy||!client)return;authBusy=true;const form=new FormData(e.target);const email=String(form.get('email')||'').trim(),password=String(form.get('password')||'');const mode=e.submitter?.value||'login';try{let res;if(e.target.id==='wh-cloud-recover'){res=await client.auth.updateUser({password});if(res.error)throw res.error;recovery=false;await refresh();message('Contraseña actualizada.');return;}if(mode!=='reset'&&password.length<8)throw Error('Introduce una contraseña de al menos 8 caracteres.');if(mode==='reset'){res=await client.auth.resetPasswordForEmail(email,{redirectTo:SITE});if(res.error)throw res.error;message('Si la cuenta existe, recibirás un correo de recuperación.');return;}if(mode==='register')res=await client.auth.signUp({email,password,options:{emailRedirectTo:SITE}});else res=await client.auth.signInWithPassword({email,password});if(res.error)throw res.error;session=res.data.session;if(session){await refresh();}else{message('Revisa tu correo para confirmar la cuenta y después inicia sesión.');}e.target.reset();}catch(err){message(err.message||'No se pudo iniciar sesión.');}finally{authBusy=false;}});
+window.WH_CLOUD={init,changed,detach,restore,flush,open,label:()=>status,write};
+})();
