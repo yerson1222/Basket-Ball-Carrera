@@ -453,8 +453,8 @@ function animateLive(){
  if(g.state==='choice'){liveTimer=setTimeout(showLive,280);}else{liveTimer=setTimeout(animateLive,80);}
  },430);
 }
-function beginLive(phase,impact){
- const f=fixtureFor(phase),title=important(phase,f);if(!title||save.player.injury>0||!f)return false;
+function beginLive(phase,impact,forceTitle){
+ const f=fixtureFor(phase),title=forceTitle||important(phase,f);if(!title||save.player.injury>0||!f)return false;
  if(save.liveMatch){showLive();return true;}
  const h=club(f.home),a=club(f.away);let hs=teamScore(h,a,save.leagueId,true),as=teamScore(a,h,save.leagueId,false);const delta=(impact?.scoreDelta||0)+(impact?.moodPts||0);
  if(f.home===save.teamId)hs=clamp(hs+delta,53,170);else as=clamp(as+delta,53,170);
@@ -494,7 +494,7 @@ function runSimulation(n){
    }
    const p=CAREER.prepare(save,currentTeam(),club(target),'regular');
    if(p){const best=p.options.map((o,j)=>({j,p:CAREER.estimate(save,o)})).sort((a,b)=>b.p-a.p)[0];if(best)CAREER.resolve(save,best.j);}
-   if(STORIES.needsClutch(save,'regular',club(target))){STORIES.startClutch(save,'regular',club(target));reason='Posesión decisiva';break;}
+   if(STORIES.needsClutch(save,'regular',club(target))){reason='Posesión decisiva';break;}
   }
   const previous=save.player.injury;last=simulateWeek();played++;persist();
   if(save.player.injury>previous){reason='Lesión';break;}
@@ -502,6 +502,7 @@ function runSimulation(n){
  }
  persist();render();if(played)toast(played+' jornada(s) simuladas'+(reason?' · Pausa: '+reason:''));
  if(pauseEvent){showModal(pregameEventModal());return;}
+ if(reason==='Posesión decisiva'){if(beginLive('regular',c.pendingImpact,'PARTIDO DECISIVO · EN DIRECTO'))return;}
  if(c.clutchPending){showModal(clutchModal());return;}
  if(v6Celebrate())return;
  if(c.interviewPending){showModal(interviewModal());return;}
@@ -613,6 +614,7 @@ function chooseMatchDecision(index){
  if(!impact)return;
  if(important(phase)){completeDecisionMatch(phase,impact);return;}
  if(STORIES.needsClutch(save,phase,opponent)){
+  if(beginLive(phase,impact,'PARTIDO DECISIVO · EN DIRECTO'))return;
   STORIES.startClutch(save,phase,opponent);persist();showModal(clutchModal());return;
  }
  completeDecisionMatch(phase,impact);
