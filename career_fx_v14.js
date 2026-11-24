@@ -7,7 +7,7 @@ const frame=()=>new Promise(r=>requestAnimationFrame(r));
 const motion=()=>{try{return localStorage.getItem('wh-casino-motion')!=='off';}catch{return true;}};
 const zones=t=>Object.fromEntries(Array.from(t?.querySelectorAll('[data-deal-zone]')||[]).map(z=>[z.dataset.dealZone,Array.from(z.querySelectorAll('.wh13-card'))]));
 const casinoAction=a=>/^v13-(roulette|baccarat|bj-|casino-tab|bac-reset)/.test(a);
-function capture(a,root){const t=root.querySelector('.wh14-casino-table');before={action:a,cards:Object.fromEntries(Object.entries(zones(t)).map(([k,v])=>[k,v.map(c=>c.dataset.card||'back')])),stop:parseFloat(t?.querySelector('.wh14-wheel-rotor')?.style.getPropertyValue('--stop'))||0};}
+function capture(a,root){const t=root.querySelector('.wh14-casino-table');before={action:a,cards:Object.fromEntries(Object.entries(zones(t)).map(([k,v])=>[k,v.map(c=>c.dataset.card||'back')])),stop:parseFloat(t?.querySelector('.wh14-wheel-rotor')?.style.getPropertyValue('--stop'))||0,metrics:Array.from(root.querySelectorAll('.wh13-metrics strong')).slice(0,2).map(n=>n.textContent)};}
 function blocked(a){return busy&&casinoAction(a);}
 function prepare(a,error){pending=null;if(a==='v13-place'&&error==='Boleto confirmado.')pending={effect:'ticket'};else if(!error){if(a==='v13-roulette-spin')pending={effect:'spin',before};else if(a==='v13-baccarat'||/^v13-bj-(start|hit|stand|double|split)$/.test(a))pending={effect:'deal',before};else if(a==='v13-select')pending={effect:'pick'};}before=null;}
 function orderCards(next,old,act){
@@ -19,16 +19,18 @@ function orderCards(next,old,act){
  if(act!=='v13-baccarat'&&act!=='v13-bj-start'){if(old.dealer?.[1]==='back'&&next.dealer?.[1]?.dataset.card!=='back')add('dealer',1,true);for(let i=(old.dealer||[]).length;i<(next.dealer||[]).length;i++)add('dealer',i);}
  return out;
 }
-function lock(root,t){
+function lock(root,t,info){
  busy=true;t.setAttribute('aria-busy','true');const buttons=Array.from(root.querySelectorAll('button[data-action^="v13-"]:not(:disabled)')).filter(b=>casinoAction(b.dataset.action));buttons.forEach(b=>b.disabled=true);
+ const metrics=Array.from(root.querySelectorAll('.wh13-metrics strong')).slice(0,2),finalValues=metrics.map(n=>n.textContent);metrics.forEach((n,i)=>{if(info.before?.metrics?.[i]!=null)n.textContent=info.before.metrics[i];});
+ const ledger=Array.from(root.querySelectorAll('.wh13-panel')).find(n=>n.querySelector('h2')?.textContent.trim()==='Movimientos recientes');if(ledger)ledger.style.visibility='hidden';
  const status=root.createElement('div');status.className='wh152-stage-status';status.setAttribute('role','status');t.prepend(status);
- return {status,unlock(){busy=false;t.removeAttribute('aria-busy');buttons.forEach(b=>b.disabled=false);status.remove();}};
+ return {status,unlock(){busy=false;t.removeAttribute('aria-busy');buttons.forEach(b=>b.disabled=false);status.remove();metrics.forEach((n,i)=>n.textContent=finalValues[i]);if(ledger)ledger.style.visibility='';}};
 }
 function tween(ms,fn){return new Promise(resolve=>{let start;const tick=now=>{if(start===undefined)start=now;const p=Math.min(1,(now-start)/ms);fn(p);if(p<1)requestAnimationFrame(tick);else resolve();};requestAnimationFrame(tick);});}
 function hide(t,sel){const nodes=Array.from(t.querySelectorAll(sel));nodes.forEach(n=>n.style.visibility='hidden');return ()=>nodes.forEach(n=>n.style.visibility='');}
 async function deal(root,t,info){
  const seq=orderCards(zones(t),info.before?.cards||{},info.before?.action);if(!seq.length)return;
- const {status,unlock}=lock(root,t),show=hide(t,'.wh14-round-result,.wh15-road,.wh14-card-zone h3,.wh13-hand h3');
+ const {status,unlock}=lock(root,t,info),show=hide(t,'.wh14-round-result,.wh15-road,.wh14-card-zone h3,.wh13-hand h3');
  seq.forEach(o=>o.card.style.visibility='hidden');const source=t.querySelector('.wh151-deck-origin'),arm=t.querySelector('.wh15-dealer-arm');
  try{
   status.textContent='Repartiendo cartas…';await frame();await frame();await wait(180);
@@ -46,12 +48,12 @@ async function deal(root,t,info){
 }
 async function spin(root,t,info){
  const wheel=t.querySelector('.wh14-wheel-stage'),rotor=t.querySelector('.wh14-wheel-rotor'),ball=t.querySelector('.wh14-wheel-ball');if(!wheel||!rotor)return;
- const {status,unlock}=lock(root,t),show=hide(t,'.wh14-round-result,.wh15-wheel-history,.wh14-wheel-hub strong');
+ const {status,unlock}=lock(root,t,info),show=hide(t,'.wh14-round-result,.wh15-wheel-history,.wh14-wheel-hub strong');
  const old=info.before?.stop||0,target=parseFloat(rotor.style.getPropertyValue('--stop'))||0,end=old+1440+((target-old)%360+360)%360;
  const number=wheel.dataset.number,win=t.querySelector('[data-action="v13-roulette-select"][data-id="n'+number+'"]');
  try{
   wheel.classList.remove('wh151-wheel-landed');rotor.style.transform='rotate('+old+'deg)';status.textContent='La rueda está girando…';await frame();await frame();
-  await tween(3000,p=>{const e=1-Math.pow(1-p,2.5);rotor.style.transform='rotate('+(old+(end-old)*e)+'deg)';if(ball)ball.style.transform='rotate('+(-1440*(1-Math.pow(1-p,2)))+'deg)';if(p>.72){wheel.style.transform='scale('+(1+.24*Math.min(1,(p-.72)/.22))+')';status.textContent='La bola está cayendo…';}});
+  await tween(3000,p=>{const e=1-Math.pow(1-p,2.5);rotor.style.transform='rotate('+(old+(end-old)*e)+'deg)';if(ball)ball.style.transform='rotate('+(-1440*(1-Math.pow(1-p,2)))+'deg) translateY('+(-12*(1-p))+'px)';if(p>.72){wheel.style.transform='scale('+(1+.24*Math.min(1,(p-.72)/.22))+')';status.textContent='La bola está cayendo…';}});
   rotor.style.transform='rotate('+target+'deg)';if(ball)ball.style.transform='rotate(0deg)';win?.classList.add('wh14-winning-number');wheel.classList.add('wh151-wheel-landed');status.textContent='Número ganador: '+number;show();await wait(700);
  }finally{wheel.style.transform='';rotor.style.transform='';if(ball)ball.style.transform='';show();unlock();}
 }
