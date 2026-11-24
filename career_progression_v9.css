@@ -1,2 +1,33 @@
 /* V9 mobile sponsor logo containment and memory arcade */
 .v8-brand-logo.v9-brand{display:flex;align-items:center;justify-content:center;height:76px;min-height:76px;max-height:76px;box-sizing:border-box;overflow:hidden;padding:10px;position:relative}.v8-brand-logo.v9-brand img{display:block;width:auto!important;height:auto!important;max-width:min(100%,170px)!important;max-height:56px!important;object-fit:contain;position:static!important;transform:none!important;flex:0 1 auto}.v8-brand-logo.v9-brand img[hidden],.v9-wordmark[hidden]{display:none!important}.v9-wordmark{font-weight:850;color:#13253d;line-height:1.1;font-size:clamp(16px,4vw,25px);text-align:center;max-width:100%;overflow-wrap:anywhere}.v9-shell{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:7px;margin:14px 0;isolation:isolate}.v9-card{height:110px;display:grid;place-items:center;background:linear-gradient(145deg,#1c364a,#0c1926);border:2px solid var(--club-accent,#bce472);border-radius:12px;color:white;font-size:32px;transition:transform .35s ease;position:relative;min-width:0;touch-action:manipulation}.v9-card:disabled{opacity:1}.v9-cardback{font-size:18px;font-weight:900;color:#e5edf6;letter-spacing:.06em}.v9-instruction{font-weight:800;color:var(--club-accent,#a7dbff)!important;min-height:24px}.v9-code{background:#0a1420;border-radius:14px;font:900 clamp(26px,6vw,42px)/1.4 monospace;letter-spacing:.11em;padding:18px 4px;overflow-wrap:anywhere}.v9-arcade input,#v9-code-input{width:100%;padding:14px;background:#0d1825;color:#fff;border:1px solid #8298b0;border-radius:10px;font:700 24px monospace;box-sizing:border-box;text-align:center}#v9-code-form .btn{width:100%}.v9-pattern{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:7px;padding:10px;border:2px solid #f0d0a5;border-radius:14px;background:repeating-linear-gradient(90deg,#946039 0 18px,#a66e43 18px 36px);margin:10px 0}.v9-pattern button{height:64px;border:1px solid #fff9;border-radius:8px;background:#112232d0;color:#eaf0f7;font-size:18px;font-weight:bold;touch-action:manipulation}.v9-pattern button:disabled{opacity:1}.v9-pattern button.lit,.v9-pattern button.v9-correct{background:#91f4a8;color:#123020;box-shadow:0 0 18px #90f5a8}.v9-feedback{font-size:28px;font-weight:900;padding:36px 0}.v9-feedback.good{color:#9df5b1}.v9-feedback.bad{color:#ff9393}@media(prefers-reduced-motion:reduce){.v9-card{transition:none}.v9-card:disabled{border-style:dashed}}
+
+/* V9.1 — responsive layout correction. Keep all text inside its own card. */
+.app-shell,.main,.page-content,.player-header,.player-id,.player-id>div:last-child,.topbar-left,.topbar-right,.page-header>div,.section-head>div,.league-info-top>div,.v9-sponsor-panel{min-width:0;box-sizing:border-box}
+.player-header{display:grid;grid-template-columns:minmax(0,1fr) minmax(86px,auto);align-items:center;max-width:100%;gap:16px}
+.player-id{min-width:0;display:grid;grid-template-columns:auto minmax(0,1fr);align-items:center}
+.player-id h2,.player-id p,.player-id .eyebrow,.player-chips .pill,.big-ovr small{white-space:normal;overflow-wrap:anywhere}
+.player-chips{min-width:0;max-width:100%}.player-chips .pill{max-width:100%;line-height:1.35}
+.big-ovr{min-width:0;max-width:100%;padding-left:16px}.big-ovr small{line-height:1.3}.big-ovr strong{color:var(--club-accent,var(--lime))}
+.player-header .profile-avatar{background:linear-gradient(125deg,var(--club-accent,#c8fa5b),var(--club-primary,#82b562));color:#101a22}
+.v8-sponsors{grid-template-columns:repeat(auto-fit,minmax(min(100%,210px),1fr));min-width:0}
+.v8-sponsor{min-width:0;max-width:100%;overflow-wrap:anywhere}
+.v8-sponsor .v8-brand-logo{position:relative!important;display:block!important;height:76px!important;min-height:76px!important;max-height:76px!important;width:100%!important;overflow:hidden!important;box-sizing:border-box!important;padding:0!important;isolation:isolate}
+.v8-sponsor .v8-brand-logo>img{position:absolute!important;inset:10px!important;margin:auto!important;display:block!important;box-sizing:border-box!important;width:calc(100% - 20px)!important;height:56px!important;max-width:160px!important;max-height:56px!important;min-width:0!important;min-height:0!important;object-fit:contain!important;object-position:center!important;transform:none!important}
+.v8-sponsor .v8-brand-logo>.v9-wordmark{position:absolute;inset:8px;display:flex;align-items:center;justify-content:center;text-align:center;font-size:clamp(15px,3.5vw,22px);line-height:1.15;overflow-wrap:anywhere}
+.v8-sponsor .v8-brand-logo>[hidden]{display:none!important}
+.v9-no-offers{padding:16px;border:1px dashed #567080;border-radius:12px;background:#111e2a;margin:12px 0 22px;overflow-wrap:anywhere}
+.v9-sponsor-panel h3{margin:22px 0 10px}
+@media(max-width:650px){
+ .app-shell,.main,.page-content{width:100%;max-width:100%}.page-content{padding-inline:14px}
+ .topbar{width:100%;max-width:100%;gap:8px}.topbar-left{flex:1;gap:8px}.topbar-right{flex-shrink:0}.crumb{min-width:0;white-space:normal;overflow-wrap:anywhere}.top-profile{flex-shrink:0}
+ .player-header{grid-template-columns:minmax(0,1fr);gap:14px;padding:16px;align-items:stretch}
+ .player-id{grid-template-columns:54px minmax(0,1fr);gap:12px}.player-header .profile-avatar{width:54px;height:54px;border-radius:13px}.player-id p{margin-bottom:8px}.player-chips .pill{font-size:9px}
+ .big-ovr{display:grid;grid-template-columns:minmax(0,1fr) auto auto;align-items:center;gap:9px;text-align:left;border-left:0;border-top:1px solid #ffffff24;padding:12px 0 0;width:100%;max-width:100%;box-sizing:border-box}
+ .big-ovr small{font-size:10px}.big-ovr strong{font-size:38px;line-height:1}.big-ovr span{font-size:10px}
+ .page-header,.section-head{gap:8px;flex-wrap:wrap}.page-header>div,.section-head>div{flex:1 1 180px}.page-header>.pill,.section-head>.pill{max-width:100%;white-space:normal}
+ .league-info-top>div{flex:1 1 135px;overflow-wrap:anywhere}.league-metrics{grid-template-columns:repeat(3,minmax(0,1fr))}.league-metrics>div{min-width:0;overflow-wrap:anywhere;padding-right:5px}
+ .columns-main,.columns-matches,.columns-leagues,.col-stack{grid-template-columns:minmax(0,1fr)}
+ .v8-sponsors{grid-template-columns:minmax(0,1fr)}.v8-sponsor{padding:13px}
+ .modal-card{max-width:100%;min-width:0;box-sizing:border-box;overflow-wrap:anywhere}
+}
+@media(max-width:360px){.topbar{padding-inline:10px}.topbar-right{gap:5px}.page-content{padding-inline:10px}.player-header{padding:12px}.player-id{grid-template-columns:46px minmax(0,1fr);gap:10px}.player-header .profile-avatar{width:46px;height:46px}.big-ovr strong{font-size:32px}}
