@@ -39,3 +39,16 @@
 .wh14-casino-table[aria-busy="true"] .wh14-wheel-stage{transition:none!important}
 .wh14-wheel-rotor{will-change:transform}
 .wh14-wheel-ball{z-index:3}
+
+/* Premium catalog V15.3 */
+.wh153-product{display:flex;flex-direction:column;gap:7px;position:relative;min-width:0}
+.wh153-acquisition{margin:0;position:relative;min-height:150px;border:1px solid #415067;border-radius:10px;overflow:hidden}
+.wh153-acquisition .wh14-photo{height:150px;object-fit:contain;background:#152333}
+.wh153-no-photo{height:150px;display:flex!important;flex-direction:column;align-items:flex-start!important;justify-content:center;gap:9px;padding:16px;background:linear-gradient(140deg,#26374b,#131f30);color:#dfe8f2}
+.wh153-acquisition.has-photo .wh153-no-photo{display:none!important}
+.wh153-no-photo span{font-size:9px;letter-spacing:.14em;color:#a7bacd}.wh153-no-photo strong{font-size:16px;line-height:1.25;color:#e4ebf5}.wh153-no-photo small{font-size:10px;color:#b5c4d3}
+.wh153-product-tier{font-size:10px;letter-spacing:.14em;text-transform:uppercase;color:#9cbbcb;font-weight:800}
+.wh153-product[data-prestige="Premium"] .wh153-product-tier{color:#a9c0f5}.wh153-product[data-prestige="Lujo"] .wh153-product-tier{color:#e8c482}.wh153-product[data-prestige="Signature"] .wh153-product-tier{color:#e5aaf7}
+.wh153-product[data-prestige="Lujo"]{border-color:#b8965c66}.wh153-product[data-prestige="Signature"]{border-color:#b585d777;box-shadow:inset 0 1px #bc8fe333}
+.wh153-model{font-size:11px;font-weight:700;color:#b9cce0;line-height:1.25}
+.wh153-product>p:last-child{margin-top:auto}
