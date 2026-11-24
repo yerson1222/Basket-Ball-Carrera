@@ -1,0 +1,32 @@
+/* V15.1: live broadcast, actual sequential dealer motion and wheel close-up. */
+.v10-court .v10-ball{left:50%;top:60%;z-index:4;transform:translate(-50%,-50%);width:clamp(12px,4.5%,22px)}
+.v10-court.wh151-left{--rim-x:10.9375%;--start-x:64%;--mid-x:39%;--near-x:28%;--ft-x:38%}
+.v10-court.wh151-right{--rim-x:89.0625%;--start-x:36%;--mid-x:61%;--near-x:72%;--ft-x:62%}
+.v10-court.wh151-two{--from-x:var(--near-x);--apex-y:14%}
+.v10-court.wh151-three{--from-x:var(--start-x);--apex-y:3%}
+.v10-court.wh151-free{--from-x:var(--ft-x);--apex-y:12%}
+.v10-court.wh151-shot-active .v10-ball{animation:wh151-shot var(--shot-ms,710ms) linear both}
+@keyframes wh151-shot{0%{left:var(--from-x);top:72%;opacity:1;transform:translate(-50%,-50%) rotate(0)}33%{left:calc((var(--from-x) + var(--rim-x))/2);top:var(--apex-y);opacity:1}56%{left:var(--rim-x);top:13%;opacity:1}68%{left:var(--rim-x);top:27.65%;opacity:1}84%{left:var(--rim-x);top:43%;opacity:1}100%{left:var(--rim-x);top:58%;opacity:0;transform:translate(-50%,-50%) rotate(440deg)}}
+.wh151-shot-active.wh151-left .wh151-hoop-left .wh151-net,.wh151-shot-active.wh151-right .wh151-hoop-right .wh151-net{transform-box:fill-box;transform-origin:50% 0;animation:wh151-net var(--shot-ms) ease both}
+@keyframes wh151-net{0%,64%,100%{transform:scale(1)}75%{transform:scale(.82,1.25)}88%{transform:scale(1.12,.94)}}
+.wh151-triple{display:none;position:absolute;z-index:5;top:6%;width:38%;height:72%;align-items:center;justify-content:center;flex-direction:column;gap:0;color:white;pointer-events:none;text-shadow:0 3px 10px #000,0 0 16px #000;background:radial-gradient(ellipse,#0b162acc,transparent 72%)}
+.wh151-left .wh151-triple{left:20%}.wh151-right .wh151-triple{right:20%}
+.wh151-triple svg{position:static;width:clamp(32px,13vw,70px);height:55%;filter:drop-shadow(0 0 9px #d4a354)}
+.wh151-triple strong{font-size:clamp(17px,4.5vw,32px);line-height:1.05;font-weight:950;font-style:italic;letter-spacing:.04em;color:#ffe7a3}
+.wh151-triple span{font-size:11px;letter-spacing:.16em;font-weight:900}
+.wh151-triple.show{display:flex;animation:wh151-triple var(--shot-ms) ease both}
+@keyframes wh151-triple{0%,58%{opacity:0;transform:scale(.6) translateY(10px)}74%{opacity:1;transform:scale(1.15)}100%{opacity:1;transform:scale(1)}}
+.wh151-shot-active .v10-call{animation:wh151-call var(--shot-ms) linear both}
+@keyframes wh151-call{0%,60%{opacity:0}75%,100%{opacity:1}}
+.wh151-deal-active .wh13-card{will-change:transform,opacity;z-index:3}.wh151-deal-active .wh15-dealer-arm{transform-box:view-box}
+.wh151-roulette-controls{display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap;margin:14px auto;max-width:680px;padding:12px;border:1px solid #b4a77c66;border-radius:10px;background:#122e27;color:#dcdcc5}
+.wh151-roulette-controls .btn{min-width:150px;background:#d9b777;color:#253028;border-color:#f2d69e;font-weight:800}
+.wh14-roulette-grid [aria-pressed="true"],.wh14-table-actions [data-action="v13-roulette-select"][aria-pressed="true"]{outline:2px solid #f5d799;outline-offset:-2px;box-shadow:inset 0 0 0 3px #f5d79944}
+.wh151-spin-active .wh14-wheel-hub strong{visibility:hidden}.wh151-spin-active .wh151-wheel-landed .wh14-wheel-hub strong{visibility:visible}
+.wh14-wheel-stage{transition:transform .6s cubic-bezier(.2,.7,.2,1),box-shadow .6s;transform-origin:50% 15%}
+.wh14-wheel-stage.wh151-wheel-focus{transform:scale(1.27);z-index:4;box-shadow:0 0 30px #e8c48780}
+.wh14-wheel-ball{transform-origin:50% calc((min(310px,76vw) - 18px)/2 - 31px - 5.5px)}
+.wh151-wheel-landed .wh14-wheel-pointer{filter:drop-shadow(0 0 8px #ffe7a3)}
+.wh151-spin-active .wh14-winning-number{outline:2px solid #ffdd9c;outline-offset:-2px}
+.wh151-art{width:100%;height:155px;display:grid;place-items:center;background:radial-gradient(ellipse at 50% 30%,#465872,#142333 75%);overflow:hidden}.wh151-art svg{width:84%;height:91%;filter:drop-shadow(0 7px 5px #0005)}.wh151-art small{position:absolute;top:6px;left:8px;color:#a9b9ce;font-size:8px;letter-spacing:.12em}.wh14-acquisition.has-photo .wh151-art{display:none}
+@media(prefers-reduced-motion:reduce){.v10-court.wh151-shot-active .v10-ball,.wh151-triple.show,.wh151-shot-active .v10-call,.wh151-shot-active .wh151-net{animation:none!important}.wh151-shot-active .v10-ball{left:var(--rim-x);top:28%;opacity:1}.wh151-triple.show{opacity:1}.wh14-wheel-stage{transition:none}}

@@ -277,7 +277,7 @@ function navItem(tab,label,sym){const active=ui.tab===tab||(tab==='odds'&&ui.tab
 function shell(){const t=currentTeam(),l=league(save.leagueId);return `<div class="app-shell wh-animate ${ui.menu?'menu-open':''}"><div class="mobile-scrim" data-action="toggle-menu"></div><aside class="sidebar">
   <div class="brand"><span class="brand-ball">◉</span><span>WORLD<span class="brand-light">HOOPS</span><small>CAREER UNIVERSE</small></span></div>
   <div class="side-label">MENÚ PRINCIPAL</div><nav class="side-nav" aria-label="Menú principal">${navItem('match','Partidos','court')}${navItem('home','Mi carrera','home')}${navItem('stats','Mi jugador','user')}${navItem('team',v12NeedList().length?'Mi equipo •':'Mi equipo','court')}${navItem('life',V13.core(save).lifePending?'Mi estilo de vida •':'Mi estilo de vida','spark')}${navItem('leaders','Estadísticas','chart')}${navItem('international','Internacional','globe')}${navItem('sponsors','Patrocinios','transfer')}${navItem('odds',V13.core(save).case?'Casa de apuestas •':'Casa de apuestas','ticket')}${navItem('casino','Casino','dice')}${navItem('leagues','Ligas del mundo','globe')}${navItem('market','Mercado','transfer')}${navItem('legacy','Mi legado','trophy')}</nav>
-  <div class="sidebar-bottom"><div class="sidebar-profile"><span class="mini-avatar">${esc(avatar(save.player.name))}</span><span class="side-person"><b>${esc(save.player.name)}</b><small>${esc(save.player.position)} · ${esc(l.flag)} ${esc(l.name)}</small></span><span class="online-dot"></span></div><div class="side-foot">VERSIÓN 15.0 ${ico('disk',14)}</div></div>
+  <div class="sidebar-bottom"><div class="sidebar-profile"><span class="mini-avatar">${esc(avatar(save.player.name))}</span><span class="side-person"><b>${esc(save.player.name)}</b><small>${esc(save.player.position)} · ${esc(l.flag)} ${esc(l.name)}</small></span><span class="online-dot"></span></div><div class="side-foot">VERSIÓN 15.1 ${ico('disk',14)}</div></div>
   </aside><main class="main"><div class="topbar"><div class="topbar-left"><button class="icon-btn mobile-menu" data-action="toggle-menu" aria-label="Abrir menú">${ico('menu',22)}</button><span class="crumb">WORLD HOOPS <span>/</span> ${esc(({home:'MI CARRERA',match:'PARTIDOS',odds:'CASA DE APUESTAS',casino:'CASINO',integrity:'INVESTIGACIONES',leagues:'LIGAS',market:'MERCADO',stats:'JUGADOR',life:'ESTILO DE VIDA',legacy:'LEGADO',sponsors:'PATROCINIOS',international:'INTERNACIONAL',team:'MI EQUIPO',leaders:'ESTADÍSTICAS',speed:'VELOCIDAD DE SIMULACIÓN'})[ui.tab])}</span></div><div class="topbar-right"><span class="time-tag">${ico('calendar',15)} ${save.year}</span><div class="top-profile">${teamLogo(t,'sm')}<span>${esc(t.name)}</span></div>${settingsButton()}</div></div><div class="page-content">${renderPage()}</div><footer class="footer">WORLD HOOPS <span>·</span> Tu carrera. Tu legado.</footer></main></div>`;}
 function renderPage(){const pages={speed:()=>pageTitle('Velocidad de simulación','Elige cómo quieres avanzar en tu carrera.')+speedPanel(),home:renderHome,match:renderMatches,odds:()=>pageTitle('Casa de apuestas','Mercados del encuentro, estadísticas y tus boletos.')+V13.book(save,fixtureFor(save.world.phase),club,league,teamLogo),casino:()=>pageTitle('Casino','Blackjack, ruleta y baccarat.')+V13.casino(save),integrity:()=>pageTitle('Investigaciones','Expedientes y sanciones de la liga.')+V13.investigations(save),leagues:renderLeagues,market:renderMarket,stats:renderStats,life:renderLife,sponsors:()=>pageTitle('Patrocinios','Construye tu marca personal y cumple objetivos comerciales.')+V8.sponsorPanel(save),legacy:()=>renderLegacy()+V8.achievementPanel(save),international:()=>pageTitle('Internacional','Compite por tu selección, tu club y el All-Star.')+V6.cupPanel(save),team:()=>pageTitle('Mi equipo','Construye tu relación con el vestuario.')+v12TeamPanel()+window.WH_V15.teamPanel(save),leaders:()=>pageTitle('Estadísticas de liga','Compara tu rendimiento con los líderes de la liga.')+V6.board(save,v6Metric)};return (pages[ui.tab]||pages.home)();}
 function nextFixture(){const w=save.world;if(w.phase!=='regular')return null;const match=(w.rounds[w.week]||[]).find(m=>m.home===save.teamId||m.away===save.teamId);return match?{...match,opponent:match.home===save.teamId?match.away:match.home}:null;}
@@ -487,18 +487,30 @@ function showLive(){
  else if(g.state==='feedback'){const p=g.plays.at(-1);if(p)showLiveShot(p);}
 }
 function showLiveShot(p){
- const ball=$('#v10-ball');if(ball){ball.classList.remove('v10-shot','rival');void ball.offsetWidth;ball.classList.add('v10-shot');if((p.side==='home'?save.liveMatch.home:save.liveMatch.away)!==save.teamId)ball.classList.add('rival');}
- const call=$('#v10-call');if(call)call.textContent='+'+p.pts+' · '+((p.side==='home'?save.liveMatch.home:save.liveMatch.away)===save.teamId?'TU EQUIPO':'RIVAL');
+ const court=$('.v10-court'),ball=$('#v10-ball'),call=$('#v10-call'),triple=$('#wh151-triple');
+ const side=p.side==='home'?'left':'right',kind=p.pts===3?'three':p.pts===1?'free':'two';
+ const reduced=window.matchMedia?.('(prefers-reduced-motion: reduce)').matches;
+ const duration=reduced?130:p.pts===3?940:p.pts===1?560:710;
+ if(court&&ball){
+  court.classList.remove('wh151-left','wh151-right','wh151-three','wh151-two','wh151-free','wh151-shot-active');
+  ball.classList.remove('v10-shot','rival');triple?.classList.remove('show');
+  court.style.setProperty('--shot-ms',duration+'ms');
+  void court.offsetWidth;court.classList.add('wh151-'+side,'wh151-'+kind,'wh151-shot-active');
+  if(p.pts===3)triple?.classList.add('show');
+ }
+ const name=shortName(p.side==='home'?save.liveMatch.home:save.liveMatch.away);
+ if(call)call.textContent=(p.pts===3?'TRIPLE':p.pts===1?'TIRO LIBRE':'CANASTA')+' · +'+p.pts+' · '+name;
+ return duration;
 }
 function animateLive(){
  const g=save?.liveMatch;if(!g||g.state!=='quarter'||!$('#v10-ball'))return;
  const p=V10.advance(g);if(!p){persist();showLive();return;}
- showLiveShot(p);persist();
+ const duration=showLiveShot(p);persist();
  liveTimer=setTimeout(()=>{liveTimer=null;if(save?.liveMatch!==g||!$('#v10-ball'))return;
  const n=$('#v10-'+p.side);if(n){n.textContent=p.side==='home'?g.hs:g.as;n.classList.remove('v10-pop');void n.offsetWidth;n.classList.add('v10-pop');}
  const progress=$('#v10-progress');if(progress)progress.style.width=Math.round(g.index/g.queue.length*100)+'%';
- if(g.state==='choice'){liveTimer=setTimeout(showLive,280);}else{liveTimer=setTimeout(animateLive,80);}
- },430);
+ if(g.state==='choice'){liveTimer=setTimeout(showLive,240);}else{liveTimer=setTimeout(animateLive,p.pts===3?350:100);}
+ },duration);
 }
 function beginLive(phase,impact,forceTitle){
  const f=fixtureFor(phase),title=forceTitle||important(phase,f);if(!title||save.player.injury>0||V13.core(save).suspension>0||V13.mode(save)==='fix'||!f)return false;
@@ -835,7 +847,7 @@ document.addEventListener('click',e=>{const el=e.target.closest('[data-action]')
  if(act==='nav'){ui.tab=el.dataset.tab;ui.menu=false;render();refreshVisibleLeagueData();window.scrollTo(0,0);return;}
  if(!save)return;
  if(act==='v13-integrity'){ui.tab='integrity';render();window.scrollTo(0,0);return;}
- if(act.startsWith('v13-')){if(window.WH_V14_FX?.blocked(act))return;const message=V13.action(save,act.slice(4),el,addNews);persist();window.WH_V14_FX?.prepare(act,message);render();if(act==='v13-match-decision'&&save.career.pending)showModal(careerDecisionModal());if(message)toast(message);return;}
+ if(act.startsWith('v13-')){if(window.WH_V14_FX?.blocked(act))return;window.WH_V14_FX?.capture(act,document);const message=V13.action(save,act.slice(4),el,addNews);persist();window.WH_V14_FX?.prepare(act,message);render();if(act==='v13-match-decision'&&save.career.pending)showModal(careerDecisionModal());if(message)toast(message);return;}
  if(act==='v10-speed'){if(['1','3','5','all'].includes(el.dataset.speed)){save.simSpeed=el.dataset.speed;persist();render();if($('#modal-root')?.querySelector('.wh-settings-modal')){showModal(settingsModal());}toast('Velocidad de simulación guardada');}return;}
  if(act==='v10-choice'){chooseLive(Number(el.dataset.choice));return;}
  if(act==='v10-next'){nextLive();return;}
