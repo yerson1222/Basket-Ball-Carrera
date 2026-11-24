@@ -282,6 +282,15 @@ function lastResult(){const r=save.world.lastMatch;if(!r)return `<div class="emp
 function renderBracket(){const w=save.world,p=w.playoffs;if(!p){return `<div class="bracket-placeholder"><div class="bracket-dots"><i></i><i></i><i></i><i></i></div><h3>Los 4 mejores avanzan</h3><p>El cuadro se definirá al finalizar la fase regular.</p></div>`;}
  const semi1=p.semis[0],semi2=p.semis[1],final=p.final;function oneMatch(a,b,r){return `<div class="bracket-match"><div class="bracket-name">${teamLogo(club(a),'tiny')}<span>${esc(club(a)?.city)}</span>${r?`<b>${r.home===a?r.hs:r.as}</b>`:''}</div><div class="bracket-name">${teamLogo(club(b),'tiny')}<span>${esc(club(b)?.city)}</span>${r?`<b>${r.home===b?r.hs:r.as}</b>`:''}</div></div>`;}
  return `<div class="bracket"><div><small>SEMIFINALES</small>${oneMatch(p.seed[0],p.seed[3],semi1)}${oneMatch(p.seed[1],p.seed[2],semi2)}</div><div><small>GRAN FINAL</small>${final?oneMatch(final.home,final.away,final):p.semis.length?oneMatch(p.semis[0].winner,p.semis[1].winner,null):'<div class="bracket-empty">POR DEFINIR</div>'}${w.champion?`<div class="winner-title">${ico('trophy',17)} ${esc(shortName(w.champion))}</div>`:''}</div></div>`;}
+function refreshVisibleLeagueData(){
+ if(!save||ui.tab!=='leagues')return;
+ const lid=ui.browseLeague;
+ const coverage=RESOURCES.coverage(lid);
+ if(!coverage.teams)return;
+ if(coverage.logos===coverage.teams&&coverage.players===coverage.teams)return;
+ if(RESOURCES.progress[lid]?.running||RESOURCES.progress[lid]?.finished)return;
+ RESOURCES.hydrateLeague(lid).catch(()=>{});
+}
 function renderLeagues(){const selected=league(ui.browseLeague)||league(save.leagueId),active=selected.id===save.leagueId,clubs=clubList(selected.id),members=DATA.leagues.filter(l=>l.continent===ui.browseContinent);return `${pageTitle('Ligas del mundo','Descubre campeonatos, compara niveles y planifica tu próximo salto.')}
  <div class="world-banner"><div class="world-emblem">${ico('globe',40)}</div><div><div class="eyebrow">TU MUNDO. SIN FRONTERAS.</div><h2>${DATA.leagues.length} ligas · ${DATA.continents.length} continentes · ${DATA.leagues.reduce((n,l)=>n+clubList(l.id).length,0)} clubes</h2><p>Explora nuevas ligas, descubre clubes y lleva tu carrera a lo más alto.</p></div></div>
  <div class="continent-tabs">${DATA.continents.map(c=>`<button class="continent-tab ${c.id===ui.browseContinent?'active':''}" data-action="continent" data-continent="${c.id}"><span class="continent-icon" style="--region:${c.accent}">${c.symbol}</span><b>${c.name}</b><small>${DATA.leagues.filter(l=>l.continent===c.id).length} ligas</small></button>`).join('')}</div>
@@ -698,13 +707,13 @@ document.addEventListener('click',e=>{const el=e.target.closest('[data-action]')
   closeModal();return;
  }
  if(act==='toggle-menu'){ui.menu=!ui.menu;render();return;}
- if(act==='nav'){ui.tab=el.dataset.tab;ui.menu=false;render();window.scrollTo(0,0);return;}
+ if(act==='nav'){ui.tab=el.dataset.tab;ui.menu=false;render();refreshVisibleLeagueData();window.scrollTo(0,0);return;}
  if(!save)return;
  if(act==='go-market'||act==='go-stats'||act==='go-leagues'||act==='go-match'){ui.tab=act.slice(3)==='market'?'market':act.slice(3)==='stats'?'stats':act.slice(3)==='leagues'?'leagues':'match';render();window.scrollTo(0,0);return;}
  if(act==='sim-one'||act==='sim-three'||act==='sim-all'){runSimulation(act==='sim-one'?1:act==='sim-three'?3:save.world.rounds.length);return;}
  if(act==='sim-playoffs'){requestMatchDecision('playoffs');return;}
- if(act==='continent'){ui.browseContinent=el.dataset.continent;ui.browseLeague=DATA.leagues.find(l=>l.continent===ui.browseContinent)?.id||save.leagueId;render();return;}
- if(act==='choose-league'){ui.browseLeague=el.dataset.league;render();return;}
+ if(act==='continent'){ui.browseContinent=el.dataset.continent;ui.browseLeague=DATA.leagues.find(l=>l.continent===ui.browseContinent)?.id||save.leagueId;render();refreshVisibleLeagueData();return;}
+ if(act==='choose-league'){ui.browseLeague=el.dataset.league;render();refreshVisibleLeagueData();return;}
  if(act==='load-rosters'){
   const lid=el.dataset.league||ui.browseLeague;
   RESOURCES.hydrateLeague(lid).then(p=>{if(ui.tab==='leagues'){render();toast('Búsqueda terminada: '+p.foundPlayers+' plantillas y '+p.foundBadges+' escudos encontrados.');}}).catch(()=>toast('No se pudo acceder a la base de datos en este momento.'));
