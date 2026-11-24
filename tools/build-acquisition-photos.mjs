@@ -8,7 +8,7 @@ await mkdir(base,{recursive:true});
 const context={window:{},localStorage:{getItem(){return null},setItem(){}},URLSearchParams,AbortController,setTimeout,clearTimeout,fetch:(url,options={})=>fetch(url,{...options,headers:{...options.headers,'User-Agent':'WorldHoopsAcquisitionBuilder/1.0 (https://github.com/yerson1222/Basket-Ball-Carrera)'}})};
 try{runInNewContext(await readFile(manifestPath,'utf8'),context);}catch{}
 const manifest=context.window.WH_ACQUISITION_PHOTOS||{};
-for(const file of ['data.js','career_mode.js','career_expansion.js','career_world_v3.js','career_stories_v5.js','career_international_v6.js','career_immersion_v92.js','career_players_v15.js','career_photos_v14.js','career_nightlife_v13.js'])runInNewContext(await readFile(file,'utf8'),context);
+for(const file of ['data.js','career_mode.js','career_expansion.js','career_world_v3.js','career_stories_v5.js','career_international_v6.js','career_immersion_v92.js','career_players_v15.js','career_photos_v14.js','career_catalog_v154.js','career_nightlife_v13.js'])runInNewContext(await readFile(file,'utf8'),context);
 const art=context.window.WH_V14_ART,queries=art.allQueries();
 if(!queries.length)throw Error('No approved per-item photographs registered');
 const pause=ms=>new Promise(r=>setTimeout(r,ms));
