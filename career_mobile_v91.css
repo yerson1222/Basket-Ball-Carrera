@@ -1,0 +1,54 @@
+/* V9.1 responsive layout hotfix. Keep actual content within its card, not merely clip page overflow. */
+.app-shell,.main,.page-content,.page-header,.columns,.col-stack,.panel,.v6-panel{min-width:0}
+.page-content,.main,.topbar{max-width:100%}
+.columns>*,.col-stack>*{min-width:0}
+.page-header>div,.section-head>div{min-width:0;overflow-wrap:anywhere}
+.page-header>.pill,.section-head>.pill{flex-shrink:0;max-width:48%;white-space:normal;text-align:center;line-height:1.35}
+.player-header{display:grid;grid-template-columns:minmax(0,1fr) minmax(76px,auto);align-items:center;max-width:100%;gap:16px}
+.player-id{display:grid;grid-template-columns:auto minmax(0,1fr);min-width:0;align-items:center}
+.player-id>div:last-child{min-width:0}
+.player-id h2,.player-id p,.player-id .eyebrow{overflow-wrap:anywhere}
+.player-chips{min-width:0;max-width:100%}
+.player-chips .pill{min-width:0;max-width:100%;white-space:normal;overflow-wrap:anywhere;line-height:1.4}
+.big-ovr{min-width:0;max-width:118px;padding-left:16px;justify-self:end;align-self:center}
+.big-ovr small{max-width:100%;white-space:normal;overflow-wrap:normal;line-height:1.4;text-align:center}
+.big-ovr strong{font-size:clamp(36px,6vw,66px);line-height:1.05}
+.big-ovr span{line-height:1.2}
+.v8-sponsors{min-width:0;grid-template-columns:repeat(auto-fit,minmax(min(100%,190px),1fr))}
+.v8-sponsor{min-width:0;max-width:100%;overflow-wrap:anywhere}
+.v8-sponsor .v8-brand-logo,.v8-sponsor .v8-brand-logo.v9-brand{position:relative!important;display:flex!important;align-items:center!important;justify-content:center!important;width:100%!important;height:84px!important;min-height:84px!important;max-height:84px!important;min-width:0;max-width:100%;flex:0 0 84px!important;padding:10px!important;box-sizing:border-box!important;overflow:hidden!important;background:#f8fafc;border-radius:9px}
+.v8-sponsor .v8-brand-logo img,.v8-sponsor .v8-brand-logo.v9-brand img{position:absolute!important;inset:10px!important;margin:auto!important;display:block!important;width:calc(100% - 20px)!important;height:calc(100% - 20px)!important;max-width:140px!important;max-height:64px!important;object-fit:contain!important;object-position:center!important;transform:none!important;flex:none!important}
+.v8-sponsor .v8-brand-logo img[hidden],.v8-sponsor .v9-wordmark[hidden],.v8-sponsor .v8-brand-logo span[hidden]{display:none!important}
+.v8-sponsor .v9-wordmark{width:100%;max-width:100%;text-align:center;overflow-wrap:anywhere;line-height:1.15}
+.v8-sponsor .btn{width:100%;min-width:0;white-space:normal;overflow-wrap:anywhere}
+.v6-scroll{max-width:100%;overflow-x:auto}
+.v6-metrics,.v6-grid,.life-shop-grid,.offers-grid,.skills-grid,.kpi-grid,.market-metrics,.stat-quad{min-width:0}
+.v6-metrics>*,.v6-grid>*,.life-shop-grid>*,.offers-grid>*,.skills-grid>*,.kpi-grid>*,.market-metrics>*,.stat-quad>*{min-width:0;overflow-wrap:anywhere}
+.topbar-left,.topbar-right{min-width:0}
+.topbar .crumb{min-width:0;overflow-wrap:anywhere}
+.topbar-right{flex-shrink:0}
+@media(max-width:600px){
+ .app-shell>.main{width:100%;min-width:0;margin-left:0}
+ .page-content{padding-inline:clamp(12px,4vw,20px)}
+ .player-header{grid-template-columns:minmax(0,1fr) 78px;gap:10px;padding:16px 12px}
+ .player-id{grid-template-columns:48px minmax(0,1fr);gap:10px;align-items:start}
+ .profile-avatar{width:48px;height:48px;border-radius:12px;font-size:19px;margin-top:3px}
+ .profile-avatar span{right:-4px;bottom:-4px;padding:3px 5px}
+ .big-ovr{width:78px;padding-left:8px;max-width:100%;align-self:start}
+ .big-ovr strong{font-size:42px}
+ .big-ovr small{font-size:7px;letter-spacing:.55px}
+ .player-chips .pill{letter-spacing:.35px;font-size:8px}
+ .topbar{padding-inline:12px;gap:6px}
+ .topbar-left{gap:5px}.topbar-right{gap:6px}.topbar .crumb{font-size:8px;letter-spacing:.7px}.topbar .crumb span{margin-inline:3px}.top-profile{padding-left:6px}
+ .section-head,.page-header{gap:8px;flex-wrap:wrap}
+ .v8-sponsor{padding:12px}
+ .footer{padding-bottom:90px}
+ .modal-card,.decision-dialog,.v7-arcade{min-width:0;max-width:100%;box-sizing:border-box}
+ .v6-metrics strong,.v8-sponsor strong,.money-kpi{overflow-wrap:anywhere}
+}
+@media(max-width:360px){
+ .player-header{grid-template-columns:minmax(0,1fr);gap:12px}
+ .player-id{grid-template-columns:48px minmax(0,1fr)}
+ .big-ovr{width:100%;max-width:none;justify-self:stretch;display:grid;grid-template-columns:minmax(0,1fr) auto auto;gap:8px;align-items:center;border-left:0;border-top:1px solid #5b7864;padding:10px 0 0;text-align:left}
+ .big-ovr small{text-align:left;font-size:9px}.big-ovr strong{font-size:34px}
+}
