@@ -68,12 +68,12 @@ function qualified(s,b){
 }
 function offersFor(s){
  const v=core(s),c=S.core(s),now=c.totalGames||0,key=s.season+':'+s.teamId;
- if(!v.offerQueue||v.offerQueue.key!==key)v.offerQueue={key,ids:[],next:now};
- const q=v.offerQueue,cap=Math.min(3,1+Math.floor((c.popularity||0)/40));
+ if(!v.offerQueue||v.offerQueue.key!==key)v.offerQueue={key,ids:[],next:now,lastShown:{}};
+ const q=v.offerQueue;q.lastShown=q.lastShown||{};const cap=Math.min(3,1+Math.floor((c.popularity||0)/40));
  q.ids=q.ids.filter(x=>x.until>now&&qualified(s,byId(x.id)));
  if(now>=q.next&&q.ids.length<cap){
-  const candidates=sponsors.filter(b=>qualified(s,b)&&!q.ids.some(x=>x.id===b.id||byId(x.id)?.category===b.category)).sort((a,b)=>Number(!!b.region)-Number(!!a.region)||a.pop-b.pop||a.base-b.base);
-  if(candidates.length){q.ids.push({id:candidates[0].id,until:now+5});q.next=now+Math.max(2,5-Math.floor((c.popularity||0)/25));}
+  const candidates=sponsors.filter(b=>qualified(s,b)&&(q.lastShown[b.id]===undefined||now-q.lastShown[b.id]>=12)&&!q.ids.some(x=>x.id===b.id||byId(x.id)?.category===b.category)).sort((a,b)=>Number(!!b.region)-Number(!!a.region)||a.pop-b.pop||a.base-b.base);
+  if(candidates.length){q.ids.push({id:candidates[0].id,until:now+5});q.lastShown[candidates[0].id]=now;q.next=now+Math.max(2,5-Math.floor((c.popularity||0)/25));}
  }
  return q.ids.map(x=>byId(x.id)).filter(Boolean);
 }
