@@ -487,18 +487,30 @@ function showLive(){
  else if(g.state==='feedback'){const p=g.plays.at(-1);if(p)showLiveShot(p);}
 }
 function showLiveShot(p){
- const ball=$('#v10-ball');if(ball){ball.classList.remove('v10-shot','rival');void ball.offsetWidth;ball.classList.add('v10-shot');if((p.side==='home'?save.liveMatch.home:save.liveMatch.away)!==save.teamId)ball.classList.add('rival');}
- const call=$('#v10-call');if(call)call.textContent='+'+p.pts+' · '+((p.side==='home'?save.liveMatch.home:save.liveMatch.away)===save.teamId?'TU EQUIPO':'RIVAL');
+ const court=$('.v10-court'),ball=$('#v10-ball'),call=$('#v10-call'),triple=$('#wh151-triple');
+ const side=p.side==='home'?'left':'right',kind=p.pts===3?'three':p.pts===1?'free':'two';
+ const reduced=window.matchMedia?.('(prefers-reduced-motion: reduce)').matches;
+ const duration=reduced?130:p.pts===3?940:p.pts===1?560:710;
+ if(court&&ball){
+  court.classList.remove('wh151-left','wh151-right','wh151-three','wh151-two','wh151-free','wh151-shot-active');
+  ball.classList.remove('v10-shot','rival');triple?.classList.remove('show');
+  court.style.setProperty('--shot-ms',duration+'ms');
+  void court.offsetWidth;court.classList.add('wh151-'+side,'wh151-'+kind,'wh151-shot-active');
+  if(p.pts===3)triple?.classList.add('show');
+ }
+ const name=shortName(p.side==='home'?save.liveMatch.home:save.liveMatch.away);
+ if(call)call.textContent=(p.pts===3?'TRIPLE':p.pts===1?'TIRO LIBRE':'CANASTA')+' · +'+p.pts+' · '+name;
+ return duration;
 }
 function animateLive(){
  const g=save?.liveMatch;if(!g||g.state!=='quarter'||!$('#v10-ball'))return;
  const p=V10.advance(g);if(!p){persist();showLive();return;}
- showLiveShot(p);persist();
+ const duration=showLiveShot(p);persist();
  liveTimer=setTimeout(()=>{liveTimer=null;if(save?.liveMatch!==g||!$('#v10-ball'))return;
  const n=$('#v10-'+p.side);if(n){n.textContent=p.side==='home'?g.hs:g.as;n.classList.remove('v10-pop');void n.offsetWidth;n.classList.add('v10-pop');}
  const progress=$('#v10-progress');if(progress)progress.style.width=Math.round(g.index/g.queue.length*100)+'%';
- if(g.state==='choice'){liveTimer=setTimeout(showLive,280);}else{liveTimer=setTimeout(animateLive,80);}
- },430);
+ if(g.state==='choice'){liveTimer=setTimeout(showLive,240);}else{liveTimer=setTimeout(animateLive,100);}
+ },duration);
 }
 function beginLive(phase,impact,forceTitle){
  const f=fixtureFor(phase),title=forceTitle||important(phase,f);if(!title||save.player.injury>0||V13.core(save).suspension>0||V13.mode(save)==='fix'||!f)return false;
@@ -835,7 +847,7 @@ document.addEventListener('click',e=>{const el=e.target.closest('[data-action]')
  if(act==='nav'){ui.tab=el.dataset.tab;ui.menu=false;render();refreshVisibleLeagueData();window.scrollTo(0,0);return;}
  if(!save)return;
  if(act==='v13-integrity'){ui.tab='integrity';render();window.scrollTo(0,0);return;}
- if(act.startsWith('v13-')){if(window.WH_V14_FX?.blocked(act))return;const message=V13.action(save,act.slice(4),el,addNews);persist();window.WH_V14_FX?.prepare(act,message);render();if(act==='v13-match-decision'&&save.career.pending)showModal(careerDecisionModal());if(message)toast(message);return;}
+ if(act.startsWith('v13-')){if(window.WH_V14_FX?.blocked(act))return;window.WH_V14_FX?.capture(act,document);const message=V13.action(save,act.slice(4),el,addNews);persist();window.WH_V14_FX?.prepare(act,message);render();if(act==='v13-match-decision'&&save.career.pending)showModal(careerDecisionModal());if(message)toast(message);return;}
  if(act==='v10-speed'){if(['1','3','5','all'].includes(el.dataset.speed)){save.simSpeed=el.dataset.speed;persist();render();if($('#modal-root')?.querySelector('.wh-settings-modal')){showModal(settingsModal());}toast('Velocidad de simulación guardada');}return;}
  if(act==='v10-choice'){chooseLive(Number(el.dataset.choice));return;}
  if(act==='v10-next'){nextLive();return;}
