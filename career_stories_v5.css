@@ -65,3 +65,7 @@
 .wh-animate .club-directory-row{transition:background .18s,transform .18s}
 .wh-animate .club-directory-row:hover{background:color-mix(in srgb,var(--club-primary) 11%,#1a2d3d);transform:translateX(2px)}
 @media(max-width:600px){.wh-resource-toolbar{display:grid}.wh-resource-toolbar .btn{width:100%}}
+
+.wh-clutch-result{margin:12px 0;padding:13px 17px;border:1px solid color-mix(in srgb,var(--club-accent) 46%,#345068);background:linear-gradient(110deg,color-mix(in srgb,var(--club-primary) 18%,#102538),#172a3a);border-radius:11px;display:grid;gap:5px;animation:wh-presentation .5s ease both}
+.wh-clutch-result strong{font-size:13px;font-weight:950;color:var(--club-accent)}
+.wh-clutch-result span{color:#d0e2ec;font-size:11px;line-height:1.55}
