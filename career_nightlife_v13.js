@@ -13,6 +13,8 @@ function core(s){
  const c=E.initWorld(s);
  if(!c.v13)c.v13={};
  const x=c.v13;
+ if(!Array.isArray(x.rouletteHistory))x.rouletteHistory=Number.isInteger(x.roulette?.n)?[x.roulette.n]:[];
+ if(!Array.isArray(x.baccaratHistory))x.baccaratHistory=x.baccarat?.player&&x.baccarat?.banker&&x.baccarat?.winner?[{player:bacTotal(x.baccarat.player),banker:bacTotal(x.baccarat.banker),winner:x.baccarat.winner}]:[];
  for(const k of ['tickets','slip','ledger','events','cases'])if(!Array.isArray(x[k]))x[k]=[];
  for(const k of ['suspension','risk','net'])if(!Number.isFinite(x[k]))x[k]=0;
  return x;
@@ -58,7 +60,7 @@ function markets(s,f,club,league){
    for(const [k,n,base,sd] of stats){
     const typical=k==='pts'?Math.max(2,(pace-(id===s.teamId?14:0))/12*(p.role==='Titular'?1.45:p.role==='Rotación'?1:.65)):k==='pra'?Math.max(5,base*(p.role==='Titular'?.8:.55)):k==='reb'?(['PF','C'].includes(p.position)?6:3):k==='ast'?(['PG','SG'].includes(p.position)?4:2):k==='min'?(p.role==='Titular'?30:p.role==='Rotación'?20:12):base;
     const old=history.length?history.reduce((v,g)=>v+value(g,k),0)/history.length:typical;
-    const mean=Math.max(.15,(old*.65+typical*.35)*modifier+(p.boost&&['pts','pra','pr','pa','reb','ast'].includes(k)?p.boost*.18:0));
+    const mean=Math.max(.15,(old*.65+typical*.35)*modifier+(p.boost&&(k===p.boostStat||(k==='pra'&&['pts','reb','ast'].includes(p.boostStat))||(k==='pr'&&['pts','reb'].includes(p.boostStat))||(k==='pa'&&['pts','ast'].includes(p.boostStat))||(k==='ra'&&['reb','ast'].includes(p.boostStat)))?p.boost*.75:0));
     const line=Math.max(.5,Math.floor(mean)+.5);
     for(const side of ['over','under']){
      const pr=1/(1+Math.exp((line-mean)/Math.max(.65,sd*.65)));
