@@ -30,3 +30,12 @@
 .wh151-spin-active .wh14-winning-number{outline:2px solid #ffdd9c;outline-offset:-2px}
 .wh151-art{width:100%;height:155px;display:grid;place-items:center;background:radial-gradient(ellipse at 50% 30%,#465872,#142333 75%);overflow:hidden}.wh151-art svg{width:84%;height:91%;filter:drop-shadow(0 7px 5px #0005)}.wh151-art small{position:absolute;top:6px;left:8px;color:#a9b9ce;font-size:8px;letter-spacing:.12em}.wh14-acquisition.has-photo .wh151-art{display:none}
 @media(prefers-reduced-motion:reduce){.v10-court.wh151-shot-active .v10-ball,.wh151-triple.show,.wh151-shot-active .v10-call,.wh151-shot-active .wh151-net{animation:none!important}.wh151-shot-active .v10-ball{left:var(--rim-x);top:28%;opacity:1}.wh151-triple.show{opacity:1}.wh14-wheel-stage{transition:none}}
+
+/* V15.2: flying physical card and visible phase indicators. */
+.wh152-stage-status{min-height:27px;text-align:center;padding:8px 12px;margin:0 0 10px;border:1px solid #d7bb7866;border-radius:8px;color:#f0dfb8;background:#112f29;font-size:13px;font-weight:800;letter-spacing:.04em}
+.wh152-flying-card{position:fixed;z-index:2147483000;pointer-events:none;display:grid;place-items:center;box-sizing:border-box;border-radius:8px;border:3px solid #e8ddc5;background:repeating-linear-gradient(45deg,#32314f 0 5px,#66608d 6px 8px);color:#fff0d1;font-size:14px;font-weight:900;box-shadow:0 7px 19px #0009;transform-origin:center;will-change:transform}
+.wh152-motion-toggle{display:block;margin:0 0 8px auto!important;font-size:12px}
+.wh14-casino-table[aria-busy="true"] .wh14-table-actions button,.wh14-casino-table[aria-busy="true"] .wh151-roulette-controls button{cursor:wait;opacity:.65}
+.wh14-casino-table[aria-busy="true"] .wh14-wheel-stage{transition:none!important}
+.wh14-wheel-rotor{will-change:transform}
+.wh14-wheel-ball{z-index:3}
