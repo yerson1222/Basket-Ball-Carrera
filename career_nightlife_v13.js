@@ -151,14 +151,17 @@ for(const [cat,icon,base,names,editions] of catalog)for(let i=0;i<names.length;i
  const tier=1+Math.floor(i*4/names.length)+j;let price=Math.round(base*(1+i*.28)**2*(1+j*1.8)/50)*50;
  if(cat==='Automóviles'&&i>=20)price*=4;if(cat==='Automóviles'&&i===24)price=2500000*(j+1);
  const pop=Math.min(15,Math.max(1,Math.round(tier*(['Automóviles','Joyas y relojes','Propiedades'].includes(cat)?1.7:.7))));
- const confidence=Math.min(12,tier*2),risk=cat==='Automóviles'||cat==='Motocicletas'?Math.min(9,tier+1):Math.min(5,tier);
- candidates.push({id:'v13-'+cat.charCodeAt(0)+'-'+catalog.findIndex(a=>a[0]===cat)+'-'+i+'-'+j,name:names[i]+' · '+editions[j],price,category:cat,icon,pop,confidence,risk,desc:'+'+pop+' popularidad · +'+confidence+' confianza · riesgo '+risk+'/10'});
+ const confidence=Math.min(12,tier*2),risk=cat==='Automóviles'||cat==='Motocicletas'?Math.min(9,tier*2):Math.min(5,tier);
+ const skill=cat==='Entrenamiento'?['shooting','athleticism','athleticism','athleticism','athleticism','shooting','shooting','playmaking','playmaking','defense'][i]:null,skillBoost=skill?Math.min(2,1+j):0,energyGain=['Salud','Personal'].includes(cat)?Math.min(12,tier*2):0;
+ const skillNames={shooting:'tiro',playmaking:'creación',defense:'defensa',athleticism:'atletismo'};
+ candidates.push({id:'v13-'+cat.charCodeAt(0)+'-'+catalog.findIndex(a=>a[0]===cat)+'-'+i+'-'+j,name:names[i]+' · '+editions[j],price,category:cat,icon,pop,confidence,risk,skill,skillBoost,energyGain,desc:'+'+pop+' popularidad · +'+confidence+' confianza · riesgo '+risk+'/10'+(skill?' · +'+skillBoost+' '+skillNames[skill]:'')+(energyGain?' · +'+energyGain+' energía':'')});
 }
 // Round-robin by category keeps every category represented.
 const buckets=catalog.map(c=>{const items=candidates.filter(i=>i.category===c[0]);const models=items.filter((_,i)=>i%c[4].length===0),versions=items.filter((_,i)=>i%c[4].length!==0);if(c[0]==='Automóviles'){const flagship=models.pop();models.splice(2,0,flagship);}return models.concat(versions);});while(E.items.length<300&&buckets.some(b=>b.length))for(const b of buckets){if(E.items.length>=300)break;if(b.length)E.items.push(b.shift());}
 const oldBuy=E.buy;
-E.buy=function(s,id){const item=E.items.find(i=>i.id===id),r=oldBuy(s,id);if(r?.ok&&item?.category){const c=E.initWorld(s);c.popularity=clamp(c.popularity+item.pop,0,100);c.coachTrust=clamp(c.coachTrust+item.confidence,0,100);core(s).personalConfidence=clamp((core(s).personalConfidence??50)+item.confidence,0,100);s.fans=(s.fans||0)+item.pop*120;if(c.lastPurchase)c.lastPurchase.popularity=item.pop;}return r;};
+E.buy=function(s,id){const item=E.items.find(i=>i.id===id),r=oldBuy(s,id);if(r?.ok&&item?.category){const c=E.initWorld(s);c.popularity=clamp(c.popularity+item.pop,0,100);core(s).personalConfidence=clamp((core(s).personalConfidence??50)+item.confidence,0,100);if(item.skill&&s.player.skills) s.player.skills[item.skill]=clamp(s.player.skills[item.skill]+item.skillBoost,1,99);if(item.energyGain)s.player.energy=clamp(s.player.energy+item.energyGain,0,100);s.fans=(s.fans||0)+item.pop*120;if(c.lastPurchase){c.lastPurchase.popularity=item.pop;c.lastPurchase.id=item.id;c.lastPurchase.confidence=item.confidence;}}return r;};
 const categoryArt={'Automóviles':'sports_car','Motocicletas':'sports_car','Propiedades':'penthouse','Ropa y calzado':'shoes','Joyas y relojes':'image_agent','Entrenamiento':'gym','Salud':'physio','Tecnología':'streaming_room','Viajes':'family_trip','Negocios':'image_agent','Personal':'trainer','Entretenimiento':'streaming_room'};
+function purchase(data){const i=E.items.find(x=>x.id===data.id);if(!i?.category)return V.purchase(data);return '<div class="modal-backdrop decision-backdrop"><section class="modal-card decision-dialog v92-purchase" role="dialog" aria-modal="true"><div class="decision-eyebrow">NUEVA ADQUISICIÓN</div>'+V.art({id:categoryArt[i.category],name:i.name})+'<h2>¡Ya es tuyo!</h2><h3>'+esc(i.name)+'</h3><p>'+esc(i.desc)+'</p><div class="wh13-metrics">'+metric('INVERSIÓN',money(i.price))+metric('POPULARIDAD','+'+i.pop)+metric('CONFIANZA','+'+i.confidence)+'</div><button class="btn primary" data-action="close-modal">Continuar</button></section></div>';}
 function lifeNotice(s){const x=core(s),e=x.lifePending;if(!e)return '';return panel(esc(e.title),'<p>'+esc(e.text)+'</p>'+e.options.map((o,i)=>btn(esc(o.label)+(o.cash?' · '+money(o.cash):''),'life-answer','data-id="'+i+'" '+(o.cash<0&&wallet(s).cash<Math.abs(o.cash)?'disabled':''),'primary')).join(''));}
 function shop(s){
  const x=core(s),cat=x.shopCat||'Todos',c=wallet(s),all=E.items.filter(i=>cat==='Todos'||cat==='Mis adquisiciones'&&c.owned.includes(i.id)||(i.category||'Originales')===cat),page=clamp(x.shopPage||0,0,Math.max(0,Math.ceil(all.length/24)-1));
@@ -205,5 +208,5 @@ function action(s,act,el,news){
  default:if(act.startsWith('bj-'))return blackjack(s,act.slice(3));
  }
 }
-window.WH_V13={core,book,casino,investigations,shop,action,alterLine,alterScore,suspendLine,settle,mode,grade,bjValue,bacTotal,refundPending,postMatch,strategy};
+window.WH_V13={core,book,casino,investigations,shop,action,alterLine,alterScore,suspendLine,settle,mode,grade,bjValue,bacTotal,refundPending,postMatch,strategy,purchase};
 })();
