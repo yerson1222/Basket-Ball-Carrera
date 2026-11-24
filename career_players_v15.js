@@ -47,7 +47,7 @@ function record(s,id,name,week){
 }
 function profile(s,id,name,week){
  const list=roster(team(id)),p=list.find(x=>x.name===name)||{name,role:'Rotación',position:'SG',rating:70,reference:false};
- const past=record(s,id,name,week),recent=past.slice(-3),avg=recent.length?recent.reduce((a,g)=>a+g.pts,0)/recent.length:0,base=Math.max(4,(p.rating-40)*.35),form=recent.length?clamp(50+(avg-base)*2.2,20,90):50+Math.round((rnd(id+name+s.season+'form')-.5)*16);
+ const past=record(s,id,name,week),recent=past.slice(-3),avg=recent.length?recent.reduce((a,g)=>a+g.pts,0)/recent.length:0,base=Math.max(3,(p.rating-40)*.25*(p.role==='Titular'?1.12:p.role==='Rotación'?.83:.57)),form=recent.length?clamp(50+(avg-base)*2.2,20,90):50+Math.round((rnd(id+name+s.season+'form')-.5)*16);
  const seed=[s.season,id,name,week].join('|'),prev=past.at(-1),locker=id===s.teamId?V.core(s).players[name]:null;
  const energy=clamp(Math.round((locker?.energy??(85-rnd(seed+'energy')*16))*.7+(prev?clamp(102-prev.min*.5,65,98):87)*.3),30,100);
  const morale=clamp(locker?.morale??(60+Math.round(rnd(seed+'morale')*28)),0,100);
@@ -66,7 +66,7 @@ function box(s,g,id,line=null){
  const players=all.length<=12?all:all.slice(0,8).concat(Array.from({length:4},(_,i)=>all[8+((g.week-1)*4+i)%(all.length-8)]));
  if(help?.ok&&!players.some(p=>p.name===help.name)){const target=all.find(p=>p.name===help.name);if(target)players[players.length-1]=target;}
  const remain=Math.max(0,score-(!line?.dnp&&line?line.pts:0));
- const seed=[s.season,g.stage,g.week,id].join(':');
+ const seed=[s.player.name,s.season,g.stage,g.week,id,g.hs,g.as].join(':');
  const rows=players.map((p,i)=>{
   const h=help?.ok&&help.name===p.name?help:null,noise=.68+rnd(seed+p.name+'w')*.67,
    formFactor=.75+p.form/200,fitness=.55+p.energy/220,mood=.8+p.morale/400,
@@ -74,8 +74,12 @@ function box(s,g,id,line=null){
   return {...p,weight,extra:h};
  });
  const weights=rows.reduce((a,p)=>a+p.weight,0)||1;
+ const maxMin=['nba','gleague'].includes(s.leagueId)?48:40,totalMin=maxMin*5-(!line?.dnp&&line?line.min||0:0);
+ for(const p of rows){const key=seed+p.name;p.rawMin=Math.max(1,(p.role==='Titular'?30:p.role==='Rotación'?19:10)*(.65+p.energy/230)+rnd(key+'m')*7+(p.extra?2:0));}
+ const rawTotal=rows.reduce((a,p)=>a+p.rawMin,0)||1;for(const p of rows)p.min=clamp(Math.floor(totalMin*p.rawMin/rawTotal),1,maxMin);
+ let left=totalMin-rows.reduce((a,p)=>a+p.min,0);const priority=[...rows].sort((a,b)=>b.rawMin-a.rawMin);while(left>0){let changed=false;for(const p of priority){if(left<=0)break;if(p.min<maxMin){p.min++;left--;changed=true;}}if(!changed)break;}
  let used=0;const result=rows.map(p=>{const exact=remain*p.weight/weights,pts=Math.floor(exact);used+=pts;const key=seed+p.name;
-  const min=clamp(Math.round((p.role==='Titular'?30:p.role==='Rotación'?19:10)*(.65+p.energy/230)+rnd(key+'m')*7+(p.extra?2:0)),3,40);
+  const min=p.min;
   const factor=(min/25)*(.7+p.form/170)*(.65+p.energy/220);
   const roll=(k,b)=>Math.max(0,Math.round((b*.6+rnd(key+k)*b*.8)*factor));
   const row={name:p.name,pts,reb:roll('r',['PF','C'].includes(p.position)?8:4),ast:roll('a',['PG','SG'].includes(p.position)?5:2.4),stl:roll('s',1.4),blk:roll('b',p.position==='C'?1.6:.6),threes:0,tov:roll('t',2),min,energy:p.energy,form:p.form,morale:p.morale,frac:exact-pts};
@@ -92,6 +96,7 @@ function recover(s,g){const own=g.boxV15?.[s.teamId];if(!own)return;const v=V.co
 const esc=x=>String(x??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 function status(p){return '<span class="wh15-player-state"><b>'+esc(p.streak)+'</b><small>'+esc(p.physical)+' · Energía '+p.energy+'% · Forma '+p.form+'%</small><span class="wh15-meter"><i style="width:'+p.energy+'%"></i></span></span>';}
 function teamPanel(s){const week=s.world.phase==='regular'?s.world.week+1:s.world.rounds.length+1+(s.world.playoffs?.round||0);
- return '<section class="panel wh15-roster"><div class="eyebrow">VESTUARIO · INFORME DE RENDIMIENTO</div><h2>Estado de la plantilla</h2><div class="wh15-roster-grid">'+preview(s,s.teamId,week).map(p=>'<article><div class="wh15-player-avatar">'+esc(p.name.split(' ').map(x=>x[0]).slice(0,2).join(''))+'</div><div><b>'+esc(p.name)+'</b><small>'+p.position+' · '+p.role+' · NVL '+p.rating+'</small>'+status(p)+(p.avg!==null?'<small>Últimos partidos: '+p.avg+' PTS</small>':'')+'</div></article>').join('')+'</div></section>';}
+ const available=window.WH_V7?.available(s)&&!s.liveMatch&&['regular','playoffs'].includes(s.world.phase);
+ return '<section class="panel wh15-roster"><div class="eyebrow">VESTUARIO · INFORME DE RENDIMIENTO</div><h2>Estado de la plantilla</h2><div class="wh15-roster-grid">'+preview(s,s.teamId,week).map(p=>'<article><div class="wh15-player-avatar">'+esc(p.name.split(' ').map(x=>x[0]).slice(0,2).join(''))+'</div><div><b>'+esc(p.name)+'</b><small>'+p.position+' · '+p.role+' · NVL '+p.rating+'</small>'+status(p)+(p.avg!==null?'<small>Últimos partidos: '+p.avg+' PTS</small>':'')+(p.boost?'<small class="wh15-help-label">Ayuda recibida · próximo encuentro</small>':'')+(available?'<button class="btn ghost wh15-help-button" data-action="v7-team-open" data-name="'+esc(p.name)+'">Ayudar a '+esc(p.name.split(' ')[0])+'</button>':'')+'</div></article>').join('')+'</div></section>';}
 window.WH_V15={roster,profile,preview,box,commit,decode,recover,status,teamPanel};
 })();
