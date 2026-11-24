@@ -8,7 +8,7 @@ const WORLD_UI=window.WH_UI;
 const ORIGIN=window.WH_ORIGIN;
 const STORIES=window.WH_STORIES;
 const RESOURCES=window.WH_RESOURCES;
- const V6=window.WH_V6,V7=window.WH_V7,V8=window.WH_V8;
+ const V6=window.WH_V6,V7=window.WH_V7,V8=window.WH_V8,V92=window.WH_V92;
  let v6Metric='ppg',v6Started=0;
 let originDraft=null;
 const KEY='worldhoops_save_v1';
@@ -238,7 +238,7 @@ function navItem(tab,label,sym){return `<button class="nav-item ${ui.tab===tab?'
 function shell(){const t=currentTeam(),l=league(save.leagueId);return `<div class="app-shell wh-animate ${ui.menu?'menu-open':''}"><div class="mobile-scrim" data-action="toggle-menu"></div><aside class="sidebar">
   <div class="brand"><span class="brand-ball">◉</span><span>WORLD<span class="brand-light">HOOPS</span><small>CAREER UNIVERSE</small></span></div>
   <div class="side-label">MENÚ PRINCIPAL</div><nav class="side-nav" aria-label="Menú principal">${navItem('home','Mi carrera','home')}${navItem('match','Partidos','court')}${navItem('leagues','Ligas del mundo','globe')}${navItem('market','Mercado','transfer')}${navItem('stats','Mi jugador','chart')}${navItem('life','Mi estilo de vida','spark')}${navItem('sponsors','Patrocinios','transfer')}${navItem('international','Internacional','globe')}${navItem('team','Mi equipo','court')}${navItem('leaders','Estadísticas de liga','chart')}${navItem('legacy','Mi legado','trophy')}</nav>
-  <div class="sidebar-bottom"><div class="sidebar-profile"><span class="mini-avatar">${esc(avatar(save.player.name))}</span><span class="side-person"><b>${esc(save.player.name)}</b><small>${esc(save.player.position)} · ${esc(l.flag)} ${esc(l.name)}</small></span><span class="online-dot"></span></div><div class="side-foot">VERSIÓN 9.1 · GUARDADO LOCAL ${ico('disk',14)}</div></div>
+  <div class="sidebar-bottom"><div class="sidebar-profile"><span class="mini-avatar">${esc(avatar(save.player.name))}</span><span class="side-person"><b>${esc(save.player.name)}</b><small>${esc(save.player.position)} · ${esc(l.flag)} ${esc(l.name)}</small></span><span class="online-dot"></span></div><div class="side-foot">VERSIÓN 9.2 · GUARDADO LOCAL ${ico('disk',14)}</div></div>
   </aside><main class="main"><div class="topbar"><div class="topbar-left"><button class="icon-btn mobile-menu" data-action="toggle-menu" aria-label="Abrir menú">${ico('menu',22)}</button><span class="crumb">WORLD HOOPS <span>/</span> ${esc(({home:'MI CARRERA',match:'PARTIDOS',leagues:'LIGAS',market:'MERCADO',stats:'JUGADOR',life:'ESTILO DE VIDA',legacy:'LEGADO',sponsors:'PATROCINIOS',international:'INTERNACIONAL',team:'MI EQUIPO',leaders:'ESTADÍSTICAS DE LIGA'})[ui.tab])}</span></div><div class="topbar-right"><span class="time-tag">${ico('calendar',15)} ${save.year}</span><div class="top-profile">${teamLogo(t,'sm')}<span>${esc(t.name)}</span></div></div></div><div class="page-content">${renderPage()}</div><footer class="footer">WORLD HOOPS <span>·</span> Tu carrera. Tu legado.</footer></main></div>`;}
 function renderPage(){const pages={home:renderHome,match:renderMatches,leagues:renderLeagues,market:renderMarket,stats:renderStats,life:renderLife,sponsors:()=>pageTitle('Patrocinios','Construye tu marca personal y cumple objetivos comerciales.')+V8.sponsorPanel(save),legacy:()=>renderLegacy()+V8.achievementPanel(save),international:()=>pageTitle('Internacional','Compite por tu selección, tu club y el All-Star.')+V6.cupPanel(save),team:()=>pageTitle('Mi equipo','Construye tu relación con el vestuario.')+V7.teamPanel(save),leaders:()=>pageTitle('Estadísticas de liga','Compara tu rendimiento con todos los jugadores simulados.')+V6.board(save,v6Metric)};return (pages[ui.tab]||pages.home)();}
 function nextFixture(){const w=save.world;if(w.phase!=='regular')return null;const match=w.rounds[w.week].find(m=>m.home===save.teamId||m.away===save.teamId);return match?{...match,opponent:match.home===save.teamId?match.away:match.home}:null;}
@@ -408,7 +408,7 @@ function draftOfferModal(){
 function baseResultModal(result,details){const p=save.world.lastMatch?.player;return `<div class="modal-backdrop" data-action="close-modal"><div class="modal-card result-modal" role="dialog" aria-modal="true" aria-label="Resultado del partido"><button class="icon-btn modal-close" data-action="close-modal" aria-label="Cerrar">${ico('close',21)}</button><div class="result-kicker">${ico('court',20)} ${esc(details||'FINAL DEL PARTIDO')}</div>${result&&p?`<div class="result-teams"><div>${teamLogo(club(result.home),'lg')}<b>${esc(club(result.home)?.city)}</b></div><div class="result-score"><strong>${result.hs} <span>:</span> ${result.as}</strong><small>FINAL</small></div><div>${teamLogo(club(result.away),'lg')}<b>${esc(club(result.away)?.city)}</b></div></div>${p.decision?.clutch?`<div class="wh-clutch-result"><strong>${p.decision.clutch.success?'¡CANASTA DECISIVA!':'JUGADA DECISIVA FALLADA'}</strong><span>${esc(p.decision.clutch.choice)} · Precisión ${p.decision.clutch.accuracy}% · Impacto ${p.decision.clutch.delta>0?'+':''}${p.decision.clutch.delta}</span></div>`:''}<h2>${result.winner===save.teamId?'¡VICTORIA!':'A SEGUIR LUCHANDO'}</h2><p>${p.dnp?'No jugaste este encuentro por lesión.':`Gran trabajo. Tus números en la cancha: ${p.pts} puntos, ${p.reb} rebotes y ${p.ast} asistencias.`}</p>`:`<div class="result-big-icon">${ico('trophy',48)}</div><h2>${esc(details||'Ronda completada')}</h2><p>Consulta el calendario y tu rendimiento para conocer todos los resultados.</p>`}<button class="btn primary create-submit" data-action="close-modal">Continuar ${ico('arrow',18)}</button></div></div>`;}
 function resultModal(result,details){return V8.decorateResult(baseResultModal(result,details),save,result);}
 function showModal(html){$('#modal-root').innerHTML=html;document.body.classList.add('modal-open');}
-function v6Celebrate(){if(!save)return false;const v=V6.core(save);const item=v.celebrations.shift();if(!item)return false;persist();showModal(V6.celebrationModal(item).replace('<div class="v6-trophy">',V8.lights('MOMENTO DE GLORIA','highlight')+'<div class="v6-trophy">'));return true;}
+function v6Celebrate(){if(!save)return false;const v=V6.core(save);const item=v.celebrations.shift();if(!item)return false;persist();showModal(V6.celebrationModal(item).replace('<div class="v6-trophy">',V92.podium(item.title)+'<div class="v6-trophy" hidden>'));return true;}
 function closeModal(){const root=$('#modal-root');if(root)root.innerHTML='';document.body.classList.remove('modal-open');}
 function toast(text){const root=$('#toast-root');if(!root)return;root.innerHTML=`<div class="toast">${ico('check',18)} ${esc(text)}</div>`;clearTimeout(toast.timer);toast.timer=setTimeout(()=>{root.innerHTML='';},3400);}
 function render(){document.title=save?`World Hoops | ${save.player.name}`:'World Hoops | Modo Carrera';WORLD_UI.theme(document,save?currentTeam():null);$('#app').innerHTML=save?shell():landing();}
@@ -440,17 +440,11 @@ function trainingChoiceModal(skill){
 }
 function renderLife(){
  const c=CAREER.init(save);
- const items=CAREER.items.map(item=>{
-  const owned=c.owned.includes(item.id);
-  const symbol=item.stat==='shooting'?'target':item.stat==='defense'?'shield':item.stat==='athleticism'?'bolt':item.stat==='playmaking'?'activity':'spark';
-  return '<article class="life-item"><div class="life-item-icon">'+ico(symbol,25)+'</div><h3>'+esc(item.name)+'</h3><p>'+esc(item.desc)+'</p>'+
-   '<div class="life-item-bottom"><strong>'+money(item.price)+'</strong>'+
-   '<button class="btn '+(owned?'outline':'primary')+' small" type="button" data-action="buy-life" data-id="'+esc(item.id)+'" '+(owned||c.cash<item.price?'disabled':'')+'>'+(owned?'Comprado':'Comprar')+'</button></div></article>';
- }).join('');
+ const items=V92.shop(save);
  const history=c.log.slice(0,5).map(h=>'<div class="life-history-row"><span>'+esc(h.day)+' · '+esc(h.club)+'</span><strong>'+esc(h.success?'Acertaste':'No salió')+'</strong></div>').join('')||'<p class="muted">Tu historia se está escribiendo en la cancha.</p>';
  return pageTitle('Mi estilo de vida','Invierte en tu carrera, recupera energía y toma decisiones fuera de la cancha.')+
  '<div class="life-wallet"><div><small>SALDO DISPONIBLE</small><strong>'+money(c.cash)+'</strong><p>Tu contrato te paga después de cada partido.</p></div><div><small>MEJORAS ADQUIRIDAS</small><strong>'+c.owned.length+' / '+CAREER.items.length+'</strong><p>Las mejoras te acompañan a cualquier equipo.</p></div></div>'+
- '<section class="panel"><div class="section-head"><div><div class="eyebrow">TU INVERSIÓN</div><h2>Entrenamiento, salud y estilo de vida</h2></div></div><div class="life-shop-grid">'+items+'</div></section>'+
+ '<section class="panel"><div class="section-head"><div><div class="eyebrow">TU INVERSIÓN</div><h2>Compras disponibles</h2></div></div>'+items+'</section>'+
  '<section class="panel"><div class="section-head"><div><div class="eyebrow">TU HISTORIA</div><h2>Últimas decisiones</h2></div></div>'+history+'</section>'+
  '<section class="panel wh-life-followups"><div class="section-head"><div><div class="eyebrow">CONSECUENCIAS QUE PERDURAN</div><h2>Mis compras y sus historias</h2></div></div>'+
  (STORIES.core(save).storyQueue.filter(x=>!x.done).map(x=>'<div class="wh-life-due"><strong>'+esc(CAREER.items.find(i=>i.id===x.asset)?.name||'Inversión')+'</strong><span>Nuevo acontecimiento en '+Math.max(0,x.dueAt-STORIES.core(save).totalGames)+' partido(s)</span></div>').join('')||'<p class="muted">Algunas compras desbloquean acontecimientos después de varios partidos.</p>')+'</section>'+
@@ -566,7 +560,7 @@ function interviewModal(){
  const opts=interview.opts.map((o,i)=>'<button class="decision-option wh-interview-choice" type="button" data-action="interview-choice" data-choice="'+i+'">'+
  '<span class="decision-num">0'+(i+1)+'</span><strong>'+esc(o.label)+V7.riskLabel(o)+'</strong></button>').join('');
  return '<div class="modal-backdrop decision-backdrop"><div class="modal-card decision-dialog wh-interview-modal" role="dialog" aria-modal="true" aria-label="Entrevista post partido">'+
- '<div class="decision-eyebrow">🎤 RUEDA DE PRENSA · TUS PALABRAS IMPORTAN</div><h2>'+esc(interview.text)+'</h2>'+
+ V92.press(save)+'<div class="decision-eyebrow">🎤 RUEDA DE PRENSA · TUS PALABRAS IMPORTAN</div><h2>'+esc(interview.text)+'</h2>'+
  '<p class="decision-help">Tus respuestas moldean tu personalidad: '+esc(V6.personality(V6.core(save)))+'. Afectan a la química, la reputación y las reacciones de prensa futuras.</p>'+
  '<div class="decision-options">'+opts+'</div>'+
  '<button class="btn ghost" data-action="interview-skip" type="button">No dar declaraciones</button></div></div>';
@@ -577,16 +571,10 @@ function chooseInterview(index){
  addNews('Entrevista en la prensa',out.answer+' · Popularidad '+(out.pop>=0?'+':'')+out.pop,'spark');
  persist();render();showModal(interviewResultModal(out));
 }
-function purchaseModal(data){
- return '<div class="modal-backdrop decision-backdrop"><div class="modal-card decision-dialog wh-purchase-modal" role="dialog" aria-modal="true" aria-label="Nueva inversión">'+
- '<div class="decision-eyebrow">UNA NUEVA ETAPA EN TU CARRERA</div><div class="wh-purchase-icon">✦</div>'+
- '<h2>¡Ya es tuyo: '+esc(data.item)+'!</h2><p>Las grandes decisiones fuera de la cancha traen oportunidades y riesgos. Algunas consecuencias aparecerán varias jornadas después.</p>'+
- '<div class="wh-consequence-stats"><span>Popularidad <b>+'+data.popularity+'</b></span><span>Inversión <b>'+money(data.cash)+'</b></span></div>'+
- '<button class="btn primary" type="button" data-action="close-modal">Continuar</button></div></div>';
-}
+function purchaseModal(data){return V92.purchase(data);}
 function interviewResultModal(out){
  return '<div class="modal-backdrop decision-backdrop"><div class="modal-card decision-dialog wh-story-result" role="dialog" aria-modal="true" aria-label="Reacción a tus declaraciones">'+
- '<div class="decision-eyebrow">LOS MEDIOS REACCIONAN</div><h2>Las palabras también cuentan</h2><p>'+esc(out.answer)+'</p>'+(out.risk&&out.risk!=='bajo'?'<p class="v7-risk '+out.risk+'">'+(out.backlash?'⚠ Reacción negativa inmediata.':'Tu respuesta ha generado expectación.')+' Tu rendimiento de los próximos partidos tendrá consecuencias.</p>':'')+
+ V92.press(save)+'<div class="decision-eyebrow">LOS MEDIOS REACCIONAN</div><h2>Las palabras también cuentan</h2><p>'+esc(out.answer)+'</p>'+(out.risk&&out.risk!=='bajo'?'<p class="v7-risk '+out.risk+'">'+(out.backlash?'⚠ Reacción negativa inmediata.':'Tu respuesta ha generado expectación.')+' Tu rendimiento de los próximos partidos tendrá consecuencias.</p>':'')+
  '<div class="wh-consequence-stats"><span>Popularidad <b>'+(out.pop>=0?'+':'')+out.pop+'</b></span>'+
  '<span>Confianza del entrenador <b>'+(out.trust>=0?'+':'')+out.trust+'</b></span><span>Personalidad <b>'+esc(out.personality||'Equilibrado')+'</b></span><span>Química <b>'+Math.round(out.chemistry||0)+'/100</b></span></div>'+
  '<button class="btn primary" data-action="close-modal" type="button">Continuar la carrera</button></div></div>';
@@ -635,7 +623,7 @@ function restTrainingWeek(){
  persist();render();showModal(trainingResultModal(out));
 }
 function pregameEventModal(){
- const e=save.career?.pregame;if(!e)return '';
+ V92.cleanEvent(save);const e=save.career?.pregame;if(!e)return '';
  const special=V8.atmosphere(save,save.career?.pregameOpponent,save.career?.pregamePhase||'regular');
  const buttons=e.options.map((o,i)=>
  '<button type="button" class="decision-option" data-action="pregame-choice" data-choice="'+i+'">'+
@@ -688,7 +676,7 @@ document.addEventListener('click',e=>{const el=e.target.closest('[data-action]')
  if(act==='toggle-menu'){ui.menu=!ui.menu;render();return;}
  if(act==='nav'){ui.tab=el.dataset.tab;ui.menu=false;render();refreshVisibleLeagueData();window.scrollTo(0,0);return;}
  if(!save)return;
- if(act==='v8-sign'){const b=V8.sponsors.find(x=>x.id===el.dataset.id);if(b&&window.confirm('¿Firmar el patrocinio simulado con '+b.name+'?')){const r=V8.sign(save,b.id);if(r){persist();render();v6Celebrate();}else toast('Oferta no disponible.');}return;}
+ if(act==='v8-sign'){const b=V8.sponsors.find(x=>x.id===el.dataset.id);if(b&&window.confirm('¿Firmar el patrocinio con '+b.name+'?')){const r=V8.sign(save,b.id);if(r){persist();render();v6Celebrate();}else toast('Oferta no disponible.');}return;}
  if(act==='v8-cancel'){if(window.confirm('¿Rescindir el patrocinio? Tendrás una penalización económica.')){const r=V8.cancel(save,el.dataset.category);if(r){persist();render();toast('Contrato rescindido · '+money(r.fine));}}return;}
  if(act==='v6-sort'){v6Metric=el.dataset.metric;render();return;}
  if(act==='v7-team-open'){const html=V7.activityModal(save,el.dataset.name);if(html)showModal(html);return;}
@@ -714,7 +702,7 @@ document.addEventListener('click',e=>{const el=e.target.closest('[data-action]')
  if(act==='go-life'){ui.tab='life';render();window.scrollTo(0,0);return;}
  if(act==='buy-life'){
   const item=CAREER.items.find(x=>x.id===el.dataset.id);
-  if(!item)return;
+  if(!item||!V92.available(save,item))return;
   if(!window.confirm('¿Comprar '+item.name+' por '+money(item.price)+'?'))return;
   const r=CAREER.buy(save,item.id);
   if(!r.ok)return toast(r.message);
