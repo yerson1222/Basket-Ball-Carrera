@@ -48,7 +48,8 @@ E.playerNames=t=>roster(t).map(p=>p.name);
 const baseCore=V.core;
 V.core=function(s){const v=baseCore(s);return v;};
 function record(s,id,name,week){
- const games=(s.world.results||[]).filter(g=>g.week<week&&(g.home===id||g.away===id)).slice(-5);
+ const all=[...(s.world.results||[]),...(s.world.playoffs?.semis||[]),...(s.world.playoffs?.final?[s.world.playoffs.final]:[])];
+ const games=all.filter(g=>g&&g.week<week&&(g.home===id||g.away===id)).sort((a,b)=>a.week-b.week).slice(-5);
  return games.map(g=>decode(g,id)?.find(p=>p.name===name)||g.boxScore?.[id]?.find(p=>p.name===name)).filter(p=>p&&!p.dnp);
 }
 function profile(s,id,name,week){
@@ -100,10 +101,11 @@ function box(s,g,id,line=null){
 function commit(s,g,id,line){const rows=box(s,g,id,line);g.boxV15??={};g.boxV15[id]=encode(rows);return rows;}
 function recover(s,g){const own=g.boxV15?.[s.teamId];if(!own)return;const v=V.core(s);for(const p of decode(g,s.teamId)){const x=v.players[p.name];if(!x)continue;x.energy=clamp(x.energy+7-Math.round(p.min*.24),30,100);x.morale=clamp(x.morale+(g.winner===s.teamId?2:-2),0,100);}}
 const esc=x=>String(x??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+function teamCondition(s,id,week){const ps=preview(s,id,week).slice(0,10);if(!ps.length)return 0;const avg=k=>ps.reduce((a,p)=>a+p[k],0)/ps.length;return clamp((avg('form')-50)*.055+(avg('energy')-80)*.07+(avg('morale')-70)*.025,-4,4);}
 function status(p){return '<span class="wh15-player-state"><b>'+esc(p.streak)+'</b><small>'+esc(p.physical)+' · Energía '+p.energy+'% · Forma '+p.form+'%</small><span class="wh15-meter"><i style="width:'+p.energy+'%"></i></span></span>';}
 function teamPanel(s){const week=s.world.phase==='regular'?s.world.week+1:s.world.rounds.length+1+(s.world.playoffs?.round||0);
  const scheduled=s.world.phase==='regular'?(s.world.rounds[s.world.week]||[]).some(m=>m.home===s.teamId||m.away===s.teamId):s.world.phase==='playoffs'&&(s.world.playoffs?.round===0?s.world.playoffs.seed?.includes(s.teamId):s.world.playoffs.semis?.some(m=>m.winner===s.teamId));
  const available=window.WH_V7?.available(s)&&!s.liveMatch&&!s.career.pendingImpact&&scheduled;
  return '<section class="panel wh15-roster"><div class="eyebrow">VESTUARIO · INFORME DE RENDIMIENTO</div><h2>Estado de la plantilla</h2><div class="wh15-roster-grid">'+preview(s,s.teamId,week).map(p=>'<article><div class="wh15-player-avatar">'+esc(p.name.split(' ').map(x=>x[0]).slice(0,2).join(''))+'</div><div><b>'+esc(p.name)+'</b><small>'+p.position+' · '+p.role+' · NVL '+p.rating+'</small>'+status(p)+(p.avg!==null?'<small>Últimos partidos: '+p.avg+' PTS</small>':'')+(p.boost?'<small class="wh15-help-label">Ayuda recibida · próximo encuentro</small>':'')+(available?'<button class="btn ghost wh15-help-button" data-action="v7-team-open" data-name="'+esc(p.name)+'">Ayudar a '+esc(p.name.split(' ')[0])+'</button>':'')+'</div></article>').join('')+'</div></section>';}
-window.WH_V15={roster,profile,preview,box,commit,decode,recover,status,teamPanel};
+window.WH_V15={roster,profile,preview,box,commit,decode,recover,status,teamPanel,teamCondition};
 })();
