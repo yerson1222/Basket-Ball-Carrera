@@ -230,7 +230,7 @@ const skillName=s=>({shooting:'Tiro',playmaking:'Creación',defense:'Defensa',at
 function avatar(name='WH'){const chars=name.trim().split(/\s+/);return (chars.length>1?chars[0][0]+chars[chars.length-1][0]:name.slice(0,2)).toUpperCase();}
 function teamLogo(team,size='md'){if(!team)return '<span class="team-logo empty" aria-hidden="true">—</span>';const regional=/^(france|italy|germany)-/.test(team.id||'');return `<span class="team-logo ${size} ${team.logo?'real-logo':''} ${regional?'fr-it-de-logo':''}" style="--team-color:${team.color}" title="${esc(team.name)}" aria-label="${esc(team.name)}">${team.logo?`<img src="${esc(team.logo)}" alt="" loading="lazy" onerror="this.style.display=\'none\';this.parentNode.append(document.createTextNode(this.dataset.abbr))" data-abbr="${esc(team.abbr)}">`:esc(team.abbr)}</span>`;}
 function leagueBadge(l,size='sm'){if(!l)return '';const id=esc(l.id),name=esc(l.name);return l.logo?`<span class="league-badge ${size} league-badge--${id}" title="${name}" data-label="${esc(l.id==='cibacopa'?'CIBACOPA':l.id==='gleague'?'G LEAGUE':l.id==='nba'?'NBA':l.name)}"><img src="${esc(l.logo)}" alt="${name}" loading="lazy" onerror="this.onerror=null;this.hidden=true;this.parentNode.classList.add('badge-image-failed');" ><span class="badge-label" aria-hidden="true">${esc(l.id==='cibacopa'?'CIBACOPA':l.id==='gleague'?'G LEAGUE':l.id==='nba'?'NBA':l.name)}</span></span>`:`<span class="league-flag ${size}">${esc(l.flag)}</span>`;}
-function logoCoverage(l){return '';}
+function logoCoverage(l){return l.logoType?'Identidad: '+l.logoType:!l.logo?'Logo pendiente de verificación':'';}
 function statusPill(text,kind='neutral'){return `<span class="pill ${kind}">${esc(text)}</span>`;}
 function actionButton(text,action,klass='primary',extra=''){return `<button type="button" class="btn ${klass}" data-action="${action}" ${extra}>${text}</button>`;}
 function pageTitle(title,subtitle=''){return `<div class="page-header"><div><div class="eyebrow">MODO CARRERA / TEMPORADA ${save.year}</div><h1>${title}</h1><p>${subtitle}</p></div>${statusPill(save.world.phase==='regular'?`Jornada ${save.world.week+1} / ${save.world.rounds.length}`:save.world.phase==='playoffs'?'PLAYOFFS':'MERCADO ABIERTO',save.world.phase==='offseason'?'lime':'neutral')}</div>`;}
@@ -636,11 +636,12 @@ function restTrainingWeek(){
 }
 function pregameEventModal(){
  const e=save.career?.pregame;if(!e)return '';
+ const special=V8.atmosphere(save,save.career?.pregameOpponent,save.career?.pregamePhase||'regular');
  const buttons=e.options.map((o,i)=>
  '<button type="button" class="decision-option" data-action="pregame-choice" data-choice="'+i+'">'+
  '<span class="decision-num">0'+(i+1)+'</span><strong>'+esc(o.label)+'</strong><small>'+esc(skillName(o.stat))+'</small></button>').join('');
  return '<div class="modal-backdrop decision-backdrop"><div class="modal-card decision-dialog" role="dialog" aria-modal="true" aria-label="Evento antes del partido">'+
- '<div class="decision-eyebrow">ANTES DEL PARTIDO · EVENTO ALEATORIO</div>'+
+ (special?V8.lights(special.title,special.kind):'')+'<div class="decision-eyebrow">ANTES DEL PARTIDO · EVENTO ALEATORIO</div>'+
  '<div class="decision-context">'+esc(e.team)+' <span>VS</span> '+esc(e.rival)+'</div>'+
  ((e.teammate||e.opponentStar)?'<div class="wh-real-stars">'+(e.teammate?'<span>COMPAÑERO: <strong>'+esc(e.teammate)+'</strong></span>':'')+(e.opponentStar?' <span>RIVAL: <strong>'+esc(e.opponentStar)+'</strong></span>':'')+'</div>':'')+
  '<h2>'+esc(e.text)+'</h2>'+
