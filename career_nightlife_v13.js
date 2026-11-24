@@ -231,10 +231,10 @@ const skillNames153={shooting:'tiro',playmaking:'creación',defense:'defensa',at
 for(const item of E.items){
  const m=/^v13-\d+-(\d+)-(\d+)-(\d+)$/.exec(item.id),edition=m?+m[3]:0;
  const p=Math.max(250,item.price),level=Math.log10(p/250);
- item.pop=Math.max(1,Math.round(1+level*4)+edition*2);
- item.confidence=Math.max(2,Math.round(2+level*5)+edition*3);
- if(item.skill)item.skillBoost=Math.max(1,Math.round(1+level*.8)+edition);
- if(item.energyGain)item.energyGain=Math.min(35,Math.round(3+level*4)+edition*5);
+ item.pop=Math.max(1,Math.round(1+level*5));
+ item.confidence=Math.max(2,Math.round(2+level*7));
+ if(item.skill)item.skillBoost=Math.max(1,Math.round(1+level*1.5)+edition);
+ if(item.energyGain)item.energyGain=Math.min(40,Math.round(3+level*7)+edition*4);
  item.tierIndex=edition;
  item.prestige=level>=3.1?'Signature':level>=2.2?'Lujo':level>=1.3?'Premium':'Esencial';
  if(item.category)item.desc='+'+item.pop+' popularidad · +'+item.confidence+' confianza · riesgo '+item.risk+'/10'+(item.skill?' · +'+item.skillBoost+' '+skillNames153[item.skill]:'')+(item.energyGain?' · +'+item.energyGain+' energía':'');
