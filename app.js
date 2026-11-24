@@ -467,6 +467,7 @@ function requestMatchDecision(phase){
  if(!save)return;
  const w=save.world;
  const c=STORIES.core(save);
+ if(c.interviewPending){showModal(interviewModal());return;}
  if(c.clutchPending){showModal(clutchModal());return;}
  if(c.pendingStory||STORIES.nextStory(save)){
   c.storyPhase=phase;STORIES.prepareStory(save);persist();showModal(storyModal());return;
