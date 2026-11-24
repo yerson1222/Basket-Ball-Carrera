@@ -79,7 +79,8 @@ async function loadTeam(team,force=false){
 const progress={};
 async function loadLeagueLogo(l){
  if(l.logo||typeof fetch!=='function')return;
- const country=l.country==='EE. UU.'?'United States':l.country||'';
+ const translation={Brasil:'Brazil',Japón:'Japan','Corea del Sur':'South Korea',Filipinas:'Philippines',Líbano:'Lebanon',Egipto:'Egypt','Nueva Zelanda':'New Zealand','Estados Unidos':'United States'};
+ const country=translation[l.country]||l.country||'';
  if(!country)return;
  try{
   const response=await fetchJson(API+'search_all_leagues.php?c='+encodeURIComponent(country)+'&s=Basketball');
