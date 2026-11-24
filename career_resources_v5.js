@@ -15,7 +15,7 @@ function matchName(team,hit){
  const name=simplify(team.name),other=simplify(hit.strTeam);
  if(name.length<5||other.length<5)return false;
  if(name===other)return true;
- const alt=[hit.strTeamAlternate,hit.strTeamShort,hit.strKeywords].filter(Boolean).flatMap(v=>v.split(/[;|,]/g)).map(simplify);
+ const alt=[hit.strTeamAlternate,hit.strAlternate,hit.strTeamShort,hit.strKeywords].filter(Boolean).flatMap(v=>v.split(/[;|,]/g)).map(simplify);
  if(alt.includes(name))return true;
  const shorter=name.length<other.length?name:other,longer=name.length>=other.length?name:other;
  // Coincidencia de nombre significativa, no solo ciudad o apodo común.
@@ -23,12 +23,7 @@ function matchName(team,hit){
 }
 function isBasketball(hit){return String(hit?.strSport||'').toLowerCase()==='basketball'}
 function safeImage(url){
- try{
-  const link=new URL(url);
-  if(link.protocol!=='https:')return null;
-  if(!/^(?:r2\.thesportsdb\.com|www\.thesportsdb\.com|thesportsdb\.com|cdn\.thesportsdb\.com)$/i.test(link.hostname))return null;
-  return url;
- }catch{return null}
+ return typeof url==='string'&&/^https:\/\/(?:r2\.thesportsdb\.com|www\.thesportsdb\.com|thesportsdb\.com|cdn\.thesportsdb\.com)(?:\/|$)/i.test(url)?url:null;
 }
 function cacheWrite(){
  try{localStorage.setItem(STORAGE,JSON.stringify(memo));}catch{}
@@ -72,7 +67,7 @@ async function loadTeam(team,force=false){
     players=(roster.player||roster.players||[]).filter(p=>p&&p.strPlayer&&(!p.strSport||isBasketball(p))&&(!p.idTeam||String(p.idTeam)===String(match.idTeam))).map(p=>p.strPlayer.trim()).filter(Boolean);
     players=[...new Set(players)].slice(0,22);
    }catch{}
-   const logo=safeImage(match.strBadge||match.strLogo);
+   const logo=safeImage(match.strBadge||match.strTeamBadge||match.strLogo);
    const value={logo,players,timestamp:Date.now(),source:'TheSportsDB',matchedName:match.strTeam};
    memo[team.id]=value;applyCached(team.id);cacheWrite();notify();
    return {ok:true,players:players.length,logo:!!logo};
@@ -89,7 +84,7 @@ async function loadLeagueLogo(l){
  try{
   const response=await fetchJson(API+'search_all_leagues.php?c='+encodeURIComponent(country)+'&s=Basketball');
   const options=(response.countrys||response.leagues||[]).filter(x=>isBasketball(x)&&simplify(x.strLeague)===simplify(l.name));
-  const item=options[0],logo=safeImage(item?.strBadge||item?.strLogo);
+  const item=options[0],logo=safeImage(item?.strBadge||item?.strTeamBadge||item?.strLogo);
   if(logo){l.logo=logo;notify();}
  }catch{}
 }
