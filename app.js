@@ -145,7 +145,7 @@ function calcPlayerGame(teamPts,opponent,lid,round,stage='regular'){
  if(dnp){p.injury--;return {week:round,stage,opponent,pts:0,reb:0,ast:0,stl:0,blk:0,min:0,fg:0,threes:0,tov:0,dnp:true};}
  const c=CAREER.initWorld(save),min=clamp(Math.round(23+(ov-CAREER.teamStrength(t))*.55+(c.coachTrust-50)*.2+rand(-4,4)),5,40);
  const shots=clamp(13+(p.skills.shooting-65)*.25+gap*.15+(p.style==='scorer'?4:0),4,32);
- const pts=clamp(Math.round(shots*min/29+rand(-7,8)),0,Math.round(teamPts*.46));
+ const pts=clamp(Math.round(shots*min/29+((V13.core(save).personalConfidence??50)-50)*.04+rand(-7,8)),0,Math.round(teamPts*.46));
  const reb=clamp(Math.round((p.position==='C'?8:p.position==='PF'?6:p.position==='SF'?4.5:3)+(.12*(p.skills.athleticism-65))+rand(-2.5,3)),0,19);
  const ast=clamp(Math.round((p.position==='PG'?7:p.position==='SG'?4:2.5)+(.14*(p.skills.playmaking-65))+rand(-2,3)),0,17);
  const stl=clamp(Math.round(1.2+(.045*(p.skills.defense-60))+rand(-.8,1.5)),0,6);
@@ -282,7 +282,7 @@ function pageTitle(title,subtitle=''){return `<div class="page-header"><div><div
 function navItem(tab,label,sym){return `<button class="nav-item ${ui.tab===tab?'active':''}" data-action="nav" data-tab="${tab}">${ico(sym,20)}<span>${label}</span>${WORLD_UI.badge(save,tab)}${ui.tab===tab?'<i class="active-dot"></i>':''}</button>`;}
 function shell(){const t=currentTeam(),l=league(save.leagueId);return `<div class="app-shell wh-animate ${ui.menu?'menu-open':''}"><div class="mobile-scrim" data-action="toggle-menu"></div><aside class="sidebar">
   <div class="brand"><span class="brand-ball">◉</span><span>WORLD<span class="brand-light">HOOPS</span><small>CAREER UNIVERSE</small></span></div>
-  <div class="side-label">MENÚ PRINCIPAL</div><nav class="side-nav" aria-label="Menú principal">${navItem('home','Mi carrera','home')}${navItem('match','Partidos','court')}${navItem('odds','Apuestas deportivas','chart')}${navItem('casino','Casino','spark')}${navItem('integrity',V13.core(save).case?'Investigaciones •':'Investigaciones','warning')}${navItem('leagues','Ligas del mundo','globe')}${navItem('market','Mercado','transfer')}${navItem('stats','Mi jugador','chart')}${navItem('life','Mi estilo de vida','spark')}${navItem('sponsors','Patrocinios','transfer')}${navItem('international','Internacional','globe')}${navItem('team',v12NeedList().length?'Mi equipo •':'Mi equipo','court')}${navItem('leaders','Estadísticas de liga','chart')}${navItem('legacy','Mi legado','trophy')}</nav>
+  <div class="side-label">MENÚ PRINCIPAL</div><nav class="side-nav" aria-label="Menú principal">${navItem('home','Mi carrera','home')}${navItem('match','Partidos','court')}${navItem('odds','Apuestas deportivas','chart')}${navItem('casino','Casino','spark')}${navItem('integrity',V13.core(save).case?'Investigaciones •':'Investigaciones','warning')}${navItem('leagues','Ligas del mundo','globe')}${navItem('market','Mercado','transfer')}${navItem('stats','Mi jugador','chart')}${navItem('life',V13.core(save).lifePending?'Mi estilo de vida •':'Mi estilo de vida','spark')}${navItem('sponsors','Patrocinios','transfer')}${navItem('international','Internacional','globe')}${navItem('team',v12NeedList().length?'Mi equipo •':'Mi equipo','court')}${navItem('leaders','Estadísticas de liga','chart')}${navItem('legacy','Mi legado','trophy')}</nav>
   <div class="sidebar-bottom"><div class="sidebar-profile"><span class="mini-avatar">${esc(avatar(save.player.name))}</span><span class="side-person"><b>${esc(save.player.name)}</b><small>${esc(save.player.position)} · ${esc(l.flag)} ${esc(l.name)}</small></span><span class="online-dot"></span></div><div class="side-foot">VERSIÓN 13.0 ${ico('disk',14)}</div></div>
   </aside><main class="main"><div class="topbar"><div class="topbar-left"><button class="icon-btn mobile-menu" data-action="toggle-menu" aria-label="Abrir menú">${ico('menu',22)}</button><span class="crumb">WORLD HOOPS <span>/</span> ${esc(({home:'MI CARRERA',match:'PARTIDOS',odds:'APUESTAS DEPORTIVAS',casino:'CASINO',integrity:'INVESTIGACIONES',leagues:'LIGAS',market:'MERCADO',stats:'JUGADOR',life:'ESTILO DE VIDA',legacy:'LEGADO',sponsors:'PATROCINIOS',international:'INTERNACIONAL',team:'MI EQUIPO',leaders:'ESTADÍSTICAS DE LIGA',speed:'VELOCIDAD DE SIMULACIÓN'})[ui.tab])}</span></div><div class="topbar-right"><span class="time-tag">${ico('calendar',15)} ${save.year}</span><div class="top-profile">${teamLogo(t,'sm')}<span>${esc(t.name)}</span></div>${settingsButton()}</div></div><div class="page-content">${renderPage()}</div><footer class="footer">WORLD HOOPS <span>·</span> Tu carrera. Tu legado.</footer></main></div>`;}
 function renderPage(){const pages={speed:()=>pageTitle('Velocidad de simulación','Elige cómo quieres avanzar en tu carrera.')+speedPanel(),home:renderHome,match:renderMatches,odds:()=>pageTitle('Apuestas deportivas','Mercados y boletos de tu carrera ficticia.')+V13.book(save,fixtureFor(save.world.phase),club,league),casino:()=>pageTitle('Casino','Juegos de azar con el saldo ficticio de tu carrera.')+V13.casino(save),integrity:()=>pageTitle('Investigaciones','Expedientes y sanciones de la liga.')+V13.investigations(save),leagues:renderLeagues,market:renderMarket,stats:renderStats,life:renderLife,sponsors:()=>pageTitle('Patrocinios','Construye tu marca personal y cumple objetivos comerciales.')+V8.sponsorPanel(save),legacy:()=>renderLegacy()+V8.achievementPanel(save),international:()=>pageTitle('Internacional','Compite por tu selección, tu club y el All-Star.')+V6.cupPanel(save),team:()=>pageTitle('Mi equipo','Construye tu relación con el vestuario.')+v12TeamPanel(),leaders:()=>pageTitle('Estadísticas de liga','Compara tu rendimiento con todos los jugadores simulados.')+V6.board(save,v6Metric)};return (pages[ui.tab]||pages.home)();}
@@ -524,7 +524,7 @@ function nextLive(){
 }
 function runSimulation(n){
  if(!save)return;
- if(['regular','playoffs'].includes(save.world.phase)&&(V13.core(save).case||V13.core(save).suspension||V13.mode(save)!=='clean'||V13.core(save).tickets.some(t=>t.state==='pendiente'))){requestMatchDecision(save.world.phase);return;}const w=save.world,c=STORIES.core(save),v=V6.core(save);
+ if(['regular','playoffs'].includes(save.world.phase)&&(V13.core(save).case||V13.core(save).lifePending||V13.core(save).suspension||V13.mode(save)!=='clean'||V13.core(save).tickets.some(t=>t.state==='pendiente'))){requestMatchDecision(save.world.phase);return;}const w=save.world,c=STORIES.core(save),v=V6.core(save);
  const sp=speed();if(sp==='1'||w.phase!=='regular'||save.liveMatch||c.pending||c.pendingImpact||c.pregame||c.clutchPending||c.interviewPending||c.pendingStory||STORIES.nextStory(save)||v.celebrations.length||important('regular')){requestMatchDecision(w.phase==='playoffs'?'playoffs':'regular');return;}
  const goal=sp==='all'?w.rounds.length-w.week:Number(sp);let played=0,last=null,reason='',pauseEvent=false;
  for(let i=0;i<goal&&w.phase==='regular';i++){
@@ -544,7 +544,7 @@ function runSimulation(n){
    if(STORIES.needsClutch(save,'regular',club(target))){reason='Posesión decisiva';break;}
   }
   const previous=save.player.injury;last=simulateWeek();played++;persist();
-  if(V13.core(save).case){reason='Investigación';break;}
+  if(V13.core(save).case||V13.core(save).lifePending){reason=V13.core(save).case?'Investigación':'Estilo de vida';break;}
   if(save.player.injury>previous){reason='Lesión';break;}
   if(v.celebrations.length||c.interviewPending||STORIES.nextStory(save)){reason='Evento importante';break;}
  }
@@ -599,6 +599,7 @@ function renderLife(){
 function requestMatchDecision(phase){
  if(!save)return;
  if(V13.core(save).case){closeModal();ui.tab='integrity';render();toast('Resuelve la investigación antes de continuar.');return;}
+ if(V13.core(save).lifePending){closeModal();ui.tab='life';render();toast('Tienes una decisión pendiente de estilo de vida.');return;}
  const w=save.world;
  const c=STORIES.core(save);
  if(save.liveMatch){showLive();return;}
@@ -723,7 +724,7 @@ function chooseInterview(index){
  addNews('Entrevista en la prensa',out.answer+' · Popularidad '+(out.pop>=0?'+':'')+out.pop,'spark');
  persist();render();showModal(interviewResultModal(out));
 }
-function purchaseModal(data){return V92.purchase(data);}
+function purchaseModal(data){return V13.purchase(data);}
 function interviewResultModal(out){
  return '<div class="modal-backdrop decision-backdrop"><div class="modal-card decision-dialog wh-story-result" role="dialog" aria-modal="true" aria-label="Reacción a tus declaraciones">'+
  V92.press(save)+'<div class="decision-eyebrow">LOS MEDIOS REACCIONAN</div><h2>Las palabras también cuentan</h2><p>'+esc(out.answer)+'</p>'+(out.risk&&out.risk!=='bajo'?'<p class="v7-risk '+out.risk+'">'+(out.backlash?'⚠ Reacción negativa inmediata.':'Tu respuesta ha generado expectación.')+' Tu rendimiento de los próximos partidos tendrá consecuencias.</p>':'')+
