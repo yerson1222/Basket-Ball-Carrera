@@ -183,7 +183,8 @@ V.finalize=function(s){oldFinalize(s);const games=s.world.playerGames.filter(x=>
  }
  const rec=s.history?.[0];if(rec?.season===s.season)rec.awards=[...new Set([...rec.awards,...s.awards.filter(a=>a.year===s.year).map(a=>a.title)])];
 };
-function logo(b){return '<span class="v8-brand-logo v9-brand">'+(b.logo?'<img src="'+esc(b.logo)+'" alt="" loading="lazy" onerror="this.hidden=true;this.nextElementSibling.hidden=false">':'')+'<span class="v9-wordmark" '+(b.logo?'hidden':'')+'>'+esc(b.name)+'</span></span>';}
+function logo(b){return '<span class="v8-brand-logo v9-brand">'+(b.logo?'<img src="'+esc(b.logo)+'" alt="Logo de '+esc(b.name)+'" loading="lazy" referrerpolicy="no-referrer" onerror="this.hidden=true;this.nextElementSibling.hidden=false">':'')+'<span class="v9-wordmark" '+(b.logo?'hidden':'')+'>'+esc(b.name)+'<small style="display:block;font-size:11px;font-weight:500;margin-left:7px">Logo no disponible</small></span></span>';}
+
 function sponsorPanel(s){
  const v=core(s),c=S.core(s),offers=offersFor(s),active=Object.values(v.sponsors),country=D.leagues.find(l=>l.id===s.leagueId)?.country||'tu región';
  const card=(b,contract)=>'<article class="v8-sponsor">'+logo(b)+'<b>'+esc(b.name)+'</b><small>'+esc(b.category)+' · '+(b.region?'Regional':'Internacional')+'</small><strong>'+money(contract?contract.total:value(s,b))+'</strong><small>Objetivo: '+esc(goalText(b))+'</small>'+(contract?'<p>Activo · '+contract.remaining+' partidos · '+contract.completed+' objetivos cumplidos</p><button class="btn ghost" data-action="v8-cancel" data-category="'+esc(b.category)+'">Rescindir (penalización)</button>':'<button class="btn primary" data-action="v8-sign" data-id="'+esc(b.id)+'">Firmar oferta</button>')+'</article>';
