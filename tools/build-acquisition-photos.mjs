@@ -14,15 +14,15 @@ const pause=ms=>new Promise(r=>setTimeout(r,ms));
 const args=new Set(process.argv.slice(2));
 let success=0,fail=0;
 for(const q of queries){
- const existing=manifest[q];
- if(existing?.src?.startsWith(base+'/')&&!args.has('--refresh')){
+ const existing=manifest[q],approved=art.read(q);
+ if(approved?.src===existing?.src&&existing?.src?.startsWith(base+'/')&&!args.has('--refresh')){
   try{await access(existing.src);success++;continue;}catch{}
  }
  try{
-  let source=art.read(q);if(!source||source.src.startsWith(base+'/'))source=await art.search(q);
+  let source=art.read(q);if(source?.src.startsWith(base+'/')){const name=encodeURIComponent(source.title.replaceAll(' ','_'));source={...source,src:'https://commons.wikimedia.org/wiki/Special:FilePath/'+name+'?width=640'};}
   if(!source)throw Error('No suitable licensed image');
   let res=await context.fetch(source.src,{signal:AbortSignal.timeout(18000)});
-  if(!res.ok){source=await art.search(q);if(!source)throw Error('No alternative');res=await context.fetch(source.src,{signal:AbortSignal.timeout(18000)});}
+  if(!res.ok)throw Error('Approved file unavailable: HTTP '+res.status);
   if(!res.ok)throw Error('HTTP '+res.status);
   const type=(res.headers.get('content-type')||'').split(';')[0],ext={'image/jpeg':'jpg','image/png':'png','image/webp':'webp'}[type];
   if(!ext)throw Error('Unsupported '+type);
