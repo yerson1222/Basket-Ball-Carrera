@@ -129,3 +129,10 @@ window.WH_DATA.realTeams.bsn[11].logo='assets/teams/bsn/vaqueros_bayamon.png';
     D.leagueLogoCoverage[key]={found:badges[key].length,total:badges[key].length};
   }
 })();
+
+/* Plantillas LBA 2026-27 (fuente OA Sport) */
+(function(){
+ const rosters=[["Semaj Christon","Savion Flagg","Hassani Gravett","Leonardo Okeke"],["Jason Burnell","RJ Cole","Moses Wright","Leandro Bolmaro","Darius Thompson"],["Prentiss Hubb","Justin Gorham","Andrea Pecchia","Dominik Olejniczak","Dante Maddox Jr."],["Darius Brown II","Charles Brown Jr.","Quincy Olivari","Toto Forray","Jordan Bayehe"],["Miro Bilan","Aaron Holiday","Hunter Tyson","Xavier Moon","John Brown III"],["Jaylen Barford","Rob Edwards","JT Thor","Speedy Smith","Jaime Echenique"],["Marco Spissu","Jeff Dowtin Jr.","Zac Seljaas","Jack White","Markel Brown"],["Joseph Mobio","Skylar Spencer","Žan Mark Šiško","Eimantas Bendžius","Denzel Valentine"],["Davide Alviti","David Duke Jr.","William McDowell-White","Amedeo Della Valle","Hunter Hale"],["Colbey Ross","Abramo Canka","Langston Galloway","Michele Ruzzier","Sean McDermott"],["Octavio Maretto","Giovanni De Nicolao","Ky Bowman","Jordan Parks","Kyle Wiltjer"],["Alessandro Cappelletti","Chico Carter","Brekkott Chapman","DeWayne Russell","JP Macura"],["Nico Mannion","Paul Watson","Corey Davis","Marko Simonović","Trentyn Flowers"],["Rasheed Bello","Trent Frazier","Marcus Carr","Kessler Edwards","Daniel Hackett"],["Angelo Warner","Alessandro Lever","Antonio Iannuzzi","Mezie Offurum","Rodney McGruder"],["Matteo Oliveri","Federico Poser","C.J. Massinburg","Mike Tobey","Andrew Andrews"]];
+ const teams=window.WH_DATA.realTeams.italy||[];
+ teams.forEach((team,i)=>{if(rosters[i]){team.players=rosters[i];team.rosterSource='OA Sport 2026-27';}});
+})();
