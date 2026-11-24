@@ -20,13 +20,11 @@ const fallback=['sports car','sport motorcycle','modern house','clothing store',
 const pinned={"Honda Civic":["Honda CIVIC EX (6BA-FL1) front.jpg","Tokumeigakarinoaoshima","CC BY-SA 4.0"],"BMW M4":["BMW M4 Coupé (F82) front.JPG","Tokumeigakarinoaoshima","CC0 1.0"],"Porsche 911 GT3 RS":["Porsche 911 GT3 RS - 01.jpg","Oleg Yunakov","CC BY-SA 4.0"],"Lamborghini Huracán":["The frontview of Lamborghini Huracán LP610-4.JPG","Tokumeigakarinoaoshima","CC0 1.0"],"Bugatti Chiron":["A Chiron.jpg","MrWalkr","CC BY-SA 4.0"]};
 Object.assign(pinned,{"Toyota Corolla":["2017 Toyota Corolla, Front Left, 01-07-2021.jpg","SsmIntrigue","CC BY-SA 4.0"],"Tesla Model 3":["2024 Tesla Model 3.jpg","Lcaa9","CC BY 4.0"],"Ford Mustang GT":["Ford Mustang GT.JPG","Thomas doerfer","CC BY-SA 3.0"],"luxury penthouse interior":["Modern luxury living room with kitchen interior.jpg","Shixart1985","CC BY 2.0"],"modern apartment interior":["Modern luxury living room with kitchen interior.jpg","Shixart1985","CC BY 2.0"],"wristwatch":["Wrist Watch.jpg","SanoTRajah","CC BY-SA 4.0"],"restaurant interior":["The Beach Restaurant Interior.jpg","riyadh.albalushi","CC BY-SA 2.0"]});
 Object.assign(pinned,{"casual sneakers":["Air Force 1.JPG","Xanor","CC0 1.0"],"basketball shoes":["Air Force 1.JPG","Xanor","CC0 1.0"],"designer jacket":["Leather Jacket (51011162080).jpg","ajay_suresh","CC BY 2.0"],"travel suitcase":["Suitcase.jpg","Appraiser","Public domain"],"sports wristwatch":["Garmin Forerunner 55.jpg","Melyanac","CC0 1.0"],"diving watch":["Seiko SKX781 Orange Monster diver watch (2026-02-13).jpg","Olgierd Rudak","CC BY-SA 4.0"],"smartwatch":["Garmin Forerunner 55.jpg","Melyanac","CC0 1.0"],"smartphone":["IPhone 15 pro model.jpg","WikiGrower1","CC BY 4.0"],"physical therapy sports":["Man receives a leg treatment while lying on a clinic examination bed.jpg","Shixart1985","CC BY 2.0"],"billiard table":["Billiards table.jpg","Kurt Kaiser","CC0 1.0"],"electric guitar":["Guitarra Electrica.jpg","Prácticas Intraescolares","CC BY-SA 4.0"],"OLED television":["Oled tv.jpg","Merlinmula","CC BY-SA 4.0"],"music recording studio":["Rock Factory Recording Studio control room.jpg","Mike Logan","CC BY-SA 3.0"],"recording studio":["Mixing console setup in a modern studio showcasing professional sound equipment and controls undefined.jpg","Shixart1985","CC BY 2.0"]});
+Object.assign(pinned,{"video game console":["PlayStation 5 and DualSense.jpg","Osh33m","CC BY-SA 4.0"],"cryotherapy chamber":["Whole Body Electric Cryotherapy Chamber.jpg","Mwlsn11","CC BY-SA 4.0"],"home cinema theater":["Home theater 1.jpg","NPat318","CC BY-SA 4.0"],"laptop computer":["Laptop PC.jpg","KK IN HK","CC BY-SA 4.0"],"sports massage therapy":["DoD Warrior Games 2016 160618-A-UN836-017.jpg","Master Sgt. D. Keith Johnson","Public domain"],"video gaming room":["Simple Setup Image.jpg","Muhammed-Huseyin Arikan","CC0 1.0"]});
 let observer;
-const allowed=/^(CC BY(?:-SA)?(?: [\d.]+)?|CC0(?: [\d.]+)?|Public domain|PDM(?: [\d.]+)?)$/i;
-const plain=value=>String(value||'').replace(/<[^>]*>/g,'').replace(/&nbsp;/g,' ').replace(/&amp;/g,'&').trim().slice(0,220);
 const esc=x=>String(x??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 const parse=id=>/^v13-\d+-(\d+)-(\d+)-\d+$/.exec(id);
 function subject(id){const m=parse(id);return m?queries[+m[1]]?.[+m[2]]:originals[id];}
-function category(id){const m=parse(id);return m?fallback[+m[1]]:null;}
 function art(item,fallbackHTML){const q=subject(item.id)||item.name;return '<figure class="wh14-acquisition" data-wh14-id="'+esc(item.id)+'" data-wh14-query="'+esc(q)+'"><div class="wh14-photo-fallback">'+(window.WH_V151_ART?.illustrate(item,q)||fallbackHTML)+'<div class="wh15-photo-fallback-label"><span>'+esc(item.name)+'</span><span>WH</span></div></div><img class="wh14-photo" loading="lazy" decoding="async" alt="'+esc(item.name)+'" hidden><figcaption class="wh14-photo-credit" hidden></figcaption></figure>';}
 function read(q){
  if(!Object.hasOwn(pinned,q))return null;
@@ -34,7 +32,7 @@ function read(q){
  const page='https://commons.wikimedia.org/wiki/File:'+file,local=window.WH_ACQUISITION_PHOTOS?.[q];
  // Ignore any image obtained by the old approximate search, including cached/local candidates.
  if(local?.title===title&&local.author===author&&local.license===license&&/^assets\/acquisitions\/[a-f0-9]{16}\.(png|jpg|webp)$/.test(local.src))return {...local,page};
- return {title,author,license,src:'https://commons.wikimedia.org/wiki/Special:FilePath/'+file+'?width=960',page};
+ return {title,author,license,src:'https://commons.wikimedia.org/wiki/Special:FilePath/'+file+'?width=640',page};
 }
 async function search(q){return read(q);}
 function showPhoto(el,v,generic){
