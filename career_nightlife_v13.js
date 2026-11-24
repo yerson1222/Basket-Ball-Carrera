@@ -20,23 +20,32 @@ function core(s){
 const key=s=>[s.season,s.teamId,s.world.phase,s.world.week,s.world.playoffs?.round??0].join(':');
 const wallet=s=>E.init(s);
 function log(s,label,delta){const x=core(s);x.ledger.unshift({label,delta,season:s.season,week:s.world.week});x.ledger=x.ledger.slice(0,100);x.net=round(x.net+delta);}
-function debit(s,n,label){const c=wallet(s);if(!Number.isFinite(n)||n<=0||n>c.cash)return false;c.cash=round(c.cash-n);log(s,label,-n);return true;}
+function debit(s,n,label){const c=wallet(s);if(!Number.isFinite(n)||n<1||n>c.cash||round(n)!==n)return false;c.cash=round(c.cash-n);log(s,label,-n);return true;}
 function credit(s,n,label){if(n>0){wallet(s).cash=round(wallet(s).cash+n);log(s,label,n);}}
 function header(s){const x=core(s);return '<div class="wh13-metrics">'+metric('SALDO FICTICIO',money(wallet(s).cash))+metric('BALANCE DE JUEGO',money(x.net))+metric('SUSPENSIÓN',x.suspension+' partidos')+'</div><p class="muted">Simulación de ficción · sin depósitos, retiros ni dinero real.</p>';}
-const stats=[['pts','Puntos',14,7],['reb','Rebotes',5,3],['ast','Asistencias',4,3],['stl','Robos',1.5,1],['blk','Tapones',1,1],['threes','Triples',1.5,1],['min','Minutos',24,5],['pra','Puntos + rebotes + asistencias',23,9],['pr','Puntos + rebotes',19,8],['pa','Puntos + asistencias',18,8],['ra','Rebotes + asistencias',9,5]];
+const stats=[['pts','Puntos',14,7],['reb','Rebotes',5,3],['ast','Asistencias',4,3],['stl','Robos',1.5,1],['blk','Tapones',1,1],['threes','Triples',1.5,1],['min','Minutos',24,5],['tov','Pérdidas',2,1.5],['pra','Puntos + rebotes + asistencias',23,9],['pr','Puntos + rebotes',19,8],['pa','Puntos + asistencias',18,8],['ra','Rebotes + asistencias',9,5]];
 function value(g,k){if(k==='pra')return g.pts+g.reb+g.ast;if(k==='pr')return g.pts+g.reb;if(k==='pa')return g.pts+g.ast;if(k==='ra')return g.reb+g.ast;return g[k]||0;}
 const odds=p=>round(1/(clamp(p,.08,.92)*1.045));
 function markets(s,f,club,league){
- const home=club(f.home),away=club(f.away),h=E.teamStrength(home),a=E.teamStrength(away),p=clamp(1/(1+Math.exp(-((h-a)*1.32+3)/9)),.08,.92);
+ const home=club(f.home),away=club(f.away),h=E.teamStrength(home),a=E.teamStrength(away),c=E.initWorld(s),rec=s.world.table||{};
+ const form=id=>{const r=rec[id];return r?(r.w-r.l)/Math.max(4,r.w+r.l)*4:0;};
+ const own=(s.player.injury||core(s).suspension?-3:clamp((c.coachTrust-55)*.045,-2.1,2));
+ const diff=(h-a)*1.32+3+form(f.home)-form(f.away)+(f.home===s.teamId?own:-own);
+ const p=clamp(1/(1+Math.exp(-diff/9)),.08,.92);
  const pace=league(s.leagueId).quality>=93?111:league(s.leagueId).quality>=84?90:league(s.leagueId).quality>=74?84:77;
  const result=[{id:'home',group:'Ganador',label:home.name,kind:'ml',side:f.home,odds:odds(p)},{id:'away',group:'Ganador',label:away.name,kind:'ml',side:f.away,odds:odds(1-p)}];
- const spread=Math.round((a-h)*1.32-3)-.5;
- function pair(k,name,line,kind='stat',sd=1){for(const side of ['over','under'])result.push({id:k+side,group:name,label:(side==='over'?'Más de ':'Menos de ')+line,kind,stat:k,line,side,odds:odds(.5+(side==='over'?-1:1)*.02)});}
- pair('total','Total del partido',pace*2-.5,'total');
+ const spread=-Math.round(diff)-.5;
+ function pair(k,name,line,kind='stat',sd=1,mean=line,alternate=false){
+ const pOver=1/(1+Math.exp((line-mean)/Math.max(.65,sd*.65)));
+ for(const side of ['over','under'])result.push({id:k+side+(alternate?'-'+line:''),group:name,label:(side==='over'?'Más de ':'Menos de ')+line,kind,stat:k,line,side,odds:odds(side==='over'?pOver:1-pOver)});
+ }
+ pair('total','Total del partido',pace*2-.5,'total',12,pace*2);
+ const homeMean=pace+(h-a)*1.32+2.6,awayMean=pace+(a-h)*1.32-1.4;
+ pair('homeTotal','Total '+home.name,Math.floor(homeMean)+.5,'teamtotal',8,homeMean);pair('awayTotal','Total '+away.name,Math.floor(awayMean)+.5,'teamtotal',8,awayMean);
  for(const [id,label,line,side] of [['spread-h',home.name,spread,f.home],['spread-a',away.name,-spread,f.away]])result.push({id,group:'Hándicap',label:label+' '+(line>0?'+':'')+line,kind:'spread',line,side,odds:1.91});
  if(!s.player.injury&&!core(s).suspension){
   const games=s.world.playerGames.filter(g=>!g.dnp).slice(-12);
-  for(const [k,n,base,sd] of stats){const mean=games.length?games.reduce((v,g)=>v+value(g,k),0)/games.length:base;pair(k,n,Math.max(.5,Math.floor(mean)+.5),'stat',sd);}
+  for(const [k,n,base,sd] of stats){const valid=k==='tov'?games.filter(g=>Number.isFinite(g.tov)):games;const mean=valid.length?valid.reduce((v,g)=>v+value(g,k),0)/valid.length:base;const line=Math.max(.5,Math.floor(mean)+.5);pair(k,n,line,'stat',sd,mean);if(['pts','reb','ast','pra','threes'].includes(k)){const step=Math.max(1,Math.round(sd*.65));if(line-step>=.5)pair(k,n,line-step,'stat',sd,mean,true);pair(k,n,line+step,'stat',sd,mean,true);}}
   for(const [k,n,pr] of [['dd','Doble-doble',.27],['td','Triple-doble',.08]])for(const side of ['yes','no'])result.push({id:k+side,group:n,label:side==='yes'?'Sí':'No',kind:k,side,odds:odds(side==='yes'?pr:1-pr)});
  }
  return result;
@@ -47,7 +56,7 @@ function book(s,f,club,league){
  if(x.marketKey!==k){x.marketKey=k;x.slip=[];x.market=markets(s,f,club,league);}
  const ms=x.market||markets(s,f,club,league),selected=x.slip.map(id=>ms.find(m=>m.id===id)).filter(Boolean);
  const groups=[...new Set(ms.map(m=>m.group))],locked=!!s.liveMatch||!!s.career.pendingImpact;
- return header(s)+'<div class="wh13-layout"><div>'+panel(esc(club(f.home).name)+' vs '+esc(club(f.away).name),'<p>Mercados prepartido · '+(locked?'cerrados':'abiertos')+'</p>'+groups.map(g=>'<div class="wh13-market"><b>'+esc(g)+'</b><div class="wh13-options">'+ms.filter(m=>m.group===g).map(m=>btn(esc(m.label)+'<strong>'+m.odds.toFixed(2)+'</strong>','select','data-id="'+m.id+'" '+(locked?'disabled':''),x.slip.includes(m.id)?'primary':'ghost')).join('')+'</div></div>').join(''))+'</div><div>'+panel('Boleto '+(selected.length>1?'combinado':'simple'),selected.map(m=>'<p>'+esc(m.group)+' · '+esc(m.label)+' <b>'+m.odds.toFixed(2)+'</b></p>').join('')+'<p>Cuota combinada <b>'+selected.reduce((v,m)=>v*m.odds,1).toFixed(2)+'</b></p><label>Importe ficticio <input id="wh13-stake" type="number" min="1" step="1" max="'+Math.floor(wallet(s).cash)+'" value="100"></label>'+btn('Confirmar boleto','place',locked?'disabled':'','primary')+btn('Limpiar','clear'))+panel('Decisión de carrera', '<p>Elige una variante ficticia de rendimiento. No garantiza ningún resultado; puede abrir un expediente disciplinario.</p>'+[['clean','Jugar normalmente'],['focus','Forzar protagonismo'],['withdraw','Reducir protagonismo'],['fix','Interferir en el partido']].map(([id,n])=>btn(n,'decision','data-id="'+id+'" '+(locked||x.suspension?'disabled':''),((x.decision?.key===k?x.decision.mode:'clean')===id?'primary':'ghost'))).join(''))+'</div></div>'+history(s);
+ return header(s)+'<div class="wh13-layout"><div>'+panel(esc(club(f.home).name)+' vs '+esc(club(f.away).name),'<p>Mercados prepartido · '+(locked?'cerrados':'abiertos')+'</p>'+groups.map(g=>'<div class="wh13-market"><b>'+esc(g)+'</b><div class="wh13-options">'+ms.filter(m=>m.group===g).map(m=>btn(esc(m.label)+'<strong>'+m.odds.toFixed(2)+'</strong>','select','data-id="'+m.id+'" '+(locked?'disabled':''),x.slip.includes(m.id)?'primary':'ghost')).join('')+'</div></div>').join(''))+'</div><div>'+panel('Boleto '+(selected.length>1?'combinado':'simple'),selected.map(m=>'<p>'+esc(m.group)+' · '+esc(m.label)+' <b>'+m.odds.toFixed(2)+'</b></p>').join('')+'<p>Cuota combinada <b>'+selected.reduce((v,m)=>v*m.odds,1).toFixed(2)+'</b></p><label>Importe ficticio <input id="wh13-stake" type="number" min="1" step="1" max="'+Math.floor(wallet(s).cash)+'" value="'+(x.bookStake||100)+'"></label><p>Retorno potencial: <strong id="wh13-potential" data-odds="'+selected.reduce((v,m)=>v*m.odds,1)+'">'+money((x.bookStake||100)*selected.reduce((v,m)=>v*m.odds,1))+'</strong></p>'+btn('Confirmar boleto','place',locked?'disabled':'','primary')+btn('Limpiar','clear'))+panel('Decisión de carrera', '<p>Elige una variante ficticia de rendimiento. No garantiza ningún resultado; puede abrir un expediente disciplinario.</p>'+[['clean','Jugar normalmente'],['focus','Forzar protagonismo'],['withdraw','Reducir protagonismo'],['fix','Interferir en el partido']].map(([id,n])=>btn(n,'decision','data-id="'+id+'" '+(locked||x.suspension?'disabled':''),((x.decision?.key===k?x.decision.mode:'clean')===id?'primary':'ghost'))).join(''))+'</div></div>'+history(s);
 }
 function history(s){const x=core(s);return panel('Mis boletos',x.tickets.slice(0,35).map(t=>'<article class="wh13-ticket"><b>'+esc(t.state.toUpperCase())+' · '+money(t.stake)+'</b><span>'+t.legs.map(l=>esc(l.group)+': '+esc(l.label)).join(' / ')+'</span><strong>'+money(t.payout||0)+'</strong></article>').join('')||'<p>Sin boletos todavía.</p>');}
 function select(s,id){const x=core(s),m=x.market?.find(v=>v.id===id);if(!m||x.marketKey!==key(s)||s.liveMatch||s.career.pendingImpact)return;
@@ -58,29 +67,29 @@ function place(s,stake){const x=core(s);if(s.liveMatch||s.career.pendingImpact||
  if(!debit(s,stake,'Boleto deportivo'))return 'Importe inválido o saldo insuficiente.';
  x.tickets.unshift({key:key(s),legs:legs.map(m=>({...m})),stake,state:'pendiente'});x.slip=[];return 'Boleto confirmado.';
 }
-function mode(s){const d=core(s).decision;return d?.key===key(s)&&!core(s).suspension&&!s.player.injury?d.mode:'clean';}
-function decision(s,id){if(!['clean','focus','withdraw','fix'].includes(id)||s.liveMatch||s.career.pendingImpact||core(s).suspension)return;core(s).decision={key:key(s),mode:id};}
+function mode(s){const d=core(s).decision;return d?.key===key(s)&&!core(s).suspension?d.mode:'clean';}
+function decision(s,id){if(!['clean','focus','withdraw','fix'].includes(id)||s.liveMatch||s.career.pendingImpact||core(s).suspension||s.player.injury)return;core(s).decision={key:key(s),mode:id};}
 function alterLine(s,line,teamPts){
  if(line.dnp)return line;
  const m=mode(s);if(m==='clean')return line;
  const delta=m==='focus'?rand(0,7):m==='withdraw'?rand(-8,-1):rand(-8,5);
  line.pts=clamp(line.pts+delta,0,Math.floor(teamPts*.55));
  line.ast=clamp(line.ast+(m==='focus'?rand(-2,1):rand(-3,1)),0,22);
- line.reb=clamp(line.reb+rand(-2,2),0,24);line.threes=Math.min(line.threes,Math.floor(line.pts/3));return line;
+ line.reb=clamp(line.reb+rand(-2,2),0,24);line.tov=clamp((line.tov||0)+rand(-1,2),0,10);line.threes=Math.min(line.threes,Math.floor(line.pts/3));return line;
 }
 function alterScore(s,own){return mode(s)==='fix'&&!s.player.injury?clamp(own+rand(-12,3),53,170):own;}
-function suspendLine(s,round,stage,opponent){const x=core(s);if(!x.suspension)return null;x.suspension--;if(s.player.injury>0)s.player.injury--;return {week:round,stage,opponent,pts:0,reb:0,ast:0,stl:0,blk:0,min:0,fg:0,threes:0,dnp:true,suspended:true};}
+function suspendLine(s,round,stage,opponent){const x=core(s);if(!x.suspension)return null;x.suspension--;if(s.player.injury>0)s.player.injury--;return {week:round,stage,opponent,pts:0,reb:0,ast:0,stl:0,blk:0,min:0,fg:0,threes:0,tov:0,dnp:true,suspended:true};}
 function grade(l,r,g){
  if(['stat','dd','td'].includes(l.kind)&&g.dnp)return null;
  if(l.kind==='ml')return r.winner===l.side;
  if(l.kind==='spread'){const v=(r.home===l.side?r.hs-r.as:r.as-r.hs)+l.line;return v===0?null:v>0;}
  if(l.kind==='dd'||l.kind==='td'){const count=['pts','reb','ast','stl','blk'].filter(k=>g[k]>=10).length;return (count>=(l.kind==='dd'?2:3))===(l.side==='yes');}
- const v=l.kind==='total'?r.hs+r.as:value(g,l.stat);
+ const v=l.kind==='total'?r.hs+r.as:l.kind==='teamtotal'?(l.stat==='homeTotal'?r.hs:r.as):value(g,l.stat);
  return v===l.line?null:l.side==='over'?v>l.line:v<l.line;
 }
 function settle(s,r,g,news){const x=core(s),k=key(s),m=g.dnp?'clean':mode(s);for(const t of x.tickets.filter(t=>t.state==='pendiente'&&t.key===k)){
  const results=t.legs.map(l=>grade(l,r,g));t.results=results;t.state=results.includes(false)?'perdido':results.every(v=>v===null)?'anulado':'ganado';
- t.payout=t.state==='perdido'?0:round(t.stake*t.legs.reduce((v,l,i)=>v*(results[i]===true?l.odds:1),1));credit(s,t.payout,'Liquidación '+t.state);news('Boleto '+t.state,money(t.payout)+' de retorno ficticio.','activity');
+ t.payout=t.state==='perdido'?0:round(t.stake*t.legs.reduce((v,l,i)=>v*(results[i]===true?l.odds:1),1));t.settledSeason=s.season;t.settledWeek=g.week;t.settledStage=g.stage;t.approach=m;credit(s,t.payout,'Liquidación '+t.state);news('Boleto '+t.state,money(t.payout)+' de retorno ficticio.','activity');
  }
  if(m!=='clean')x.risk=clamp(x.risk+(m==='fix'?22:10),0,100);
  if(!x.case&&!x.suspension&&!g.suspended&&Math.random()<.012+x.risk*.0025){
@@ -88,6 +97,9 @@ function settle(s,r,g,news){const x=core(s),k=key(s),m=g.dnp?'clean':mode(s);for
  }else x.risk=Math.max(0,x.risk-1);
  delete x.decision; lifestyleEvent(s,news);
 }
+function refundPending(s){for(const t of core(s).tickets.filter(t=>t.state==='pendiente')){t.state='anulado';t.payout=t.stake;credit(s,t.stake,'Boleto anulado al cerrar temporada');}core(s).slip=[];delete core(s).decision;}
+function postMatch(s,g){if(!g)return '';const ts=core(s).tickets.filter(t=>t.settledSeason===s.season&&t.settledWeek===g.week&&t.settledStage===g.stage);return ts.length?'<div class="wh13-match-summary"><h3>Resultado de tus apuestas</h3>'+ts.map(t=>'<p><b>'+esc(t.state.toUpperCase())+'</b> · '+money(t.stake)+' → '+money(t.payout)+'<br><small>'+t.legs.map((l,i)=>esc(l.group)+' '+(t.results[i]===true?'✓':t.results[i]===false?'✕':'—')).join(' · ')+'</small></p>').join('')+'</div>':'';}
+function strategy(s){const x=core(s),m=mode(s);return '<div class="wh13-strategy"><b>Enfoque del partido</b><div class="wh13-options">'+[['clean','Normal'],['focus','Protagonismo'],['withdraw','Menor protagonismo'],['fix','Interferir']].map(([id,n])=>btn(n,'match-decision','data-id="'+id+'" '+(s.player.injury||x.suspension?'disabled':''),m===id?'primary':'ghost')).join('')+'</div><small>Decisiones ficticias. Los enfoques no normales pueden provocar investigaciones.</small></div>';}
 function investigations(s){const x=core(s),c=x.case;return header(s)+panel('Comisión de integridad',c?'<p>Prueba de memoria ficticia: memoriza la secuencia y luego reprodúcela. Dos errores implican sanción.</p>'+(c.started?'<p>Progreso '+c.step+' / '+c.sequence.length+' · Errores '+c.errors+' / 2</p><div class="wh13-options">'+[1,2,3,4].map(n=>btn(''+n,'answer','data-id="'+n+'"','primary')).join('')+'</div>':'<div class="wh13-sequence">'+c.sequence.map(n=>'<b>'+n+'</b>').join('')+'</div>'+btn('He memorizado','start-case','','primary')):'<p>No tienes investigaciones abiertas.</p>')+panel('Historial disciplinario',x.cases.map(c=>'<p>Temporada '+c.season+' · J'+c.week+' · '+esc(c.verdict)+'</p>').join('')||'<p>Sin expedientes resueltos.</p>');}
 function answer(s,n,news){const x=core(s),c=x.case;if(!c?.started||!Number.isInteger(n)||n<1||n>4)return;if(n===c.sequence[c.step])c.step++;else c.errors++;
  if(c.errors>=2||c.step===c.sequence.length){const lost=c.errors>=2;c.verdict=lost?'Culpable · 5 partidos':'Expediente cerrado';if(lost){x.suspension+=5;const w=E.initWorld(s);w.popularity=Math.max(0,w.popularity-20);w.coachTrust=Math.max(0,w.coachTrust-8);}x.cases.unshift(c);delete x.case;x.risk=0;news(lost?'Sanción disciplinaria':'Expediente cerrado',lost?'Suspendido 5 partidos. Popularidad −20.':'Has superado el desafío de integridad.','warning');}
@@ -103,7 +115,7 @@ const cardsHTML=cs=>cs.map(cardHTML).join('');
 function casino(s){const x=core(s),b=x.bj,tab=x.casinoTab||'bj';return header(s)+'<div class="wh13-options">'+[['bj','Blackjack'],['roulette','Ruleta europea'],['baccarat','Baccarat']].map(([id,l])=>btn(l,'casino-tab','data-id="'+id+'"',tab===id?'primary':'ghost')).join('')+'</div>'+panel(tab==='bj'?'Blackjack':tab==='roulette'?'Ruleta europea':'Baccarat','<div class="wh13-table">'+(tab==='bj'&&b?'<h3>Crupier '+(b.done?bjValue(b.dealer):'')+'</h3><div class="wh13-cards">'+cardHTML(b.dealer[0])+(b.done?cardsHTML(b.dealer.slice(1)):'<span class="wh13-card back">WH</span>')+'</div>'+b.hands.map((h,i)=>'<div class="wh13-hand '+(i===b.index&&!b.done?'active':'')+'"><h3>Mano '+(i+1)+' · '+bjValue(h.cards)+' · '+money(h.stake)+'</h3><div class="wh13-cards">'+cardsHTML(h.cards)+'</div><p>'+esc(h.result||'')+'</p></div>').join('')+(b.done?'<p>'+esc(b.result)+'</p>':btn('Pedir','bj-hit','','primary')+btn('Plantarse','bj-stand')+btn('Doblar','bj-double',b.hands[b.index].cards.length!==2||wallet(s).cash<b.hands[b.index].stake?'disabled':'')+btn('Dividir','bj-split',b.hands.length>=4||b.hands[b.index].cards.length!==2||b.hands[b.index].cards[0].rank!==b.hands[b.index].cards[1].rank||wallet(s).cash<b.hands[b.index].stake?'disabled':'')):'')+
  (tab==='roulette'?'<div class="wh13-wheel">'+(x.roulette?.n??'0–36')+'</div><div class="wh13-roulette">'+Array.from({length:37},(_,n)=>btn(''+n,'roulette','data-id="n'+n+'"',n===0?'green':red.has(n)?'red':'black')).join('')+'</div><div class="wh13-options">'+[['red','Rojo'],['black','Negro'],['even','Par'],['odd','Impar'],['low','1–18'],['high','19–36'],['d1','1.ª docena'],['d2','2.ª docena'],['d3','3.ª docena'],['c1','Columna 1'],['c2','Columna 2'],['c3','Columna 3']].map(([id,l])=>btn(l,'roulette','data-id="'+id+'"')).join('')+'</div><p>'+esc(x.roulette?.message||'Selecciona una apuesta para girar.')+'</p>':'')+
  (tab==='baccarat'?'<h3>Jugador</h3><div class="wh13-cards">'+cardsHTML(x.baccarat?.player||[])+'</div><h3>Banca</h3><div class="wh13-cards">'+cardsHTML(x.baccarat?.banker||[])+'</div><p>'+esc(x.baccarat?.message||'Selecciona el resultado.')+'</p>'+[['player','Jugador · 1:1'],['banker','Banca · 0,95:1'],['tie','Empate · 8:1']].map(([id,l])=>btn(l,'baccarat','data-id="'+id+'"','primary')).join(''):'')+
- '</div><label>Importe ficticio <input id="wh13-casino-stake" type="number" min="1" step="1" value="100"></label>'+ (tab==='bj'&&(!b||b.done)?btn('Repartir cartas','bj-start','','primary'):'')+'<p class="muted">'+(tab==='bj'?'Crupier se planta en 17; blackjack 3:2, empate devuelve la apuesta.':tab==='roulette'?'Un solo cero. Pleno 35:1, docena o columna 2:1, apuestas simples 1:1.':'Reglas de tercera carta; comisión del 5% para banca.')+'</p>')+panel('Movimientos recientes',x.ledger.slice(0,15).map(l=>'<p>'+esc(l.label)+' · <b>'+money(l.delta)+'</b></p>').join('')||'<p>Sin movimientos.</p>');}
+ '</div><label>Importe ficticio <input id="wh13-casino-stake" type="number" min="1" step="1" value="'+(x.casinoStake||100)+'"></label>'+ (tab==='bj'&&(!b||b.done)?btn('Repartir cartas','bj-start','','primary'):'')+'<p class="muted">'+(tab==='bj'?'Crupier se planta en 17; blackjack 3:2, empate devuelve la apuesta.':tab==='roulette'?'Un solo cero. Pleno 35:1, docena o columna 2:1, apuestas simples 1:1.':'Reglas de tercera carta; comisión del 5% para banca.')+'</p>')+panel('Movimientos recientes',x.ledger.slice(0,15).map(l=>'<p>'+esc(l.label)+' · <b>'+money(l.delta)+'</b></p>').join('')||'<p>Sin movimientos.</p>');}
 function finishBJ(s,b){while(bjValue(b.dealer)<17)b.dealer.push(b.deck.pop());const d=bjValue(b.dealer),dn=b.dealer.length===2&&d===21;let total=0;for(const h of b.hands){const v=bjValue(h.cards);let pay=0;if(v>21)h.result='Pasado';else if(natural(h)&&dn){pay=h.stake;h.result='Empate';}else if(natural(h)){pay=h.stake*2.5;h.result='Blackjack';}else if(dn)h.result='Blackjack del crupier';else if(d>21||v>d){pay=h.stake*2;h.result='Ganada';}else if(v===d){pay=h.stake;h.result='Empate';}else h.result='Perdida';total+=pay;}credit(s,round(total),'Blackjack · retorno');b.done=true;b.result='Retorno: '+money(total);}
 function advanceBJ(s,b){while(b.index<b.hands.length&&b.hands[b.index].done)b.index++;if(b.index===b.hands.length)finishBJ(s,b);}
 function blackjack(s,act){const x=core(s);let b=x.bj;
@@ -157,12 +169,13 @@ function lifestyleEvent(s,news){const c=E.initWorld(s),x=core(s),owned=E.items.f
 }
 function action(s,act,el,news){
  const x=core(s),id=el.dataset.id;
- switch(act){case 'select':select(s,id);break;case 'clear':x.slip=[];break;case 'place':return place(s,Number(document.getElementById('wh13-stake')?.value));case 'decision':decision(s,id);break;
+ const bookAmount=Number(document.getElementById('wh13-stake')?.value),casinoAmount=stake();if(Number.isFinite(bookAmount)&&bookAmount>=1)x.bookStake=bookAmount;if(Number.isFinite(casinoAmount)&&casinoAmount>=1)x.casinoStake=casinoAmount;
+ switch(act){case 'select':select(s,id);break;case 'clear':x.slip=[];break;case 'place':return place(s,Number(document.getElementById('wh13-stake')?.value));case 'decision':case 'match-decision':decision(s,id);break;
  case 'casino-tab':x.casinoTab=id;break;case 'roulette':return roulette(s,id);case 'baccarat':return baccarat(s,id);
  case 'start-case':if(x.case&&!x.case.started)x.case.started=true;break;case 'answer':answer(s,+id,news);break;
  case 'shop-cat':x.shopCat=id;x.shopPage=0;break;case 'shop-page':x.shopPage=Math.max(0,(x.shopPage||0)+Number(id));break;
  default:if(act.startsWith('bj-'))return blackjack(s,act.slice(3));
  }
 }
-window.WH_V13={core,book,casino,investigations,shop,action,alterLine,alterScore,suspendLine,settle,mode,grade,bjValue,bacTotal};
+window.WH_V13={core,book,casino,investigations,shop,action,alterLine,alterScore,suspendLine,settle,mode,grade,bjValue,bacTotal,refundPending,postMatch,strategy};
 })();
