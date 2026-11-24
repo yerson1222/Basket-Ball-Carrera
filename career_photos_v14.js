@@ -232,7 +232,7 @@ const tierPhotos={
 };
 let observer;const assigned=new Map(),used=new Set();
 const esc=x=>String(x??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
-const parse=id=>/^v13-\d+-(\d+)-(\d+)-\d+$/.exec(id);
+const parse=id=>/^v13-\d+-(\d+)-(\d+)-(\d+)$/.exec(id);
 function baseSubject(id){const m=parse(id);return m?queries[+m[1]]?.[+m[2]]:originals[id];}
 function subject(id){return id;}
 const fileKey=t=>t.normalize('NFC').replaceAll('_',' ').toLowerCase();
