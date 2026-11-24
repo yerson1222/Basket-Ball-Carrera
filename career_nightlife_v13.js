@@ -61,7 +61,7 @@ function markets(s,f,club,league){
     const line=Math.max(.5,Math.floor(mean)+.5);
     for(const side of ['over','under']){
      const pr=1/(1+Math.exp((line-mean)/Math.max(.65,sd*.65)));
-     result.push({id:participant+'-'+k+'-'+side,group:name+' · '+n,marketName:n,participant,name,kind:'stat',stat:k,line,side,odds:odds(side==='over'?pr:1-pr)});
+     result.push({id:participant+'-'+k+'-'+side,group:name+' · '+n,marketName:n,participant,name,label:(side==='over'?'Más de ':'Menos de ')+line,kind:'stat',stat:k,line,side,odds:odds(side==='over'?pr:1-pr)});
     }
    }
    for(const [k,n,pr] of [['dd','Doble-doble',.2],['td','Triple-doble',.08]])for(const side of ['yes','no'])result.push({id:participant+'-'+k+'-'+side,group:name+' · '+n,marketName:n,participant,name,kind:k,side,odds:odds(side==='yes'?pr:1-pr)});
@@ -142,8 +142,9 @@ const cardHTML=(c,i=0)=>{const rank=['','A','2','3','4','5','6','7','8','9','10'
 const cardsHTML=cs=>cs.map((c,i)=>cardHTML(c,i)).join('');
 const wheelOrder=[0,32,15,19,4,21,2,25,17,34,6,27,13,36,11,30,8,23,10,5,24,16,33,1,20,14,31,9,22,18,29,7,28,12,35,3,26];
 function wheel(n){
+ const segment=360/37,gradient='conic-gradient(from '+(-segment/2)+'deg, '+wheelOrder.map((v,i)=>(v===0?'#21794e':red.has(v)?'#a12e40':'#1a2730')+' '+(i*segment)+'deg '+((i+1)*segment)+'deg').join(',')+')';
  const slots=wheelOrder.map((v,i)=>'<span class="wh14-wheel-slot '+(v===0?'green':red.has(v)?'red':'black')+'" style="--angle:'+(i*360/37)+'deg">'+v+'</span>').join('');
- return '<div class="wh14-wheel-stage" data-number="'+(n??'')+'"><div class="wh14-wheel-pointer"></div><div class="wh14-wheel-rotor" style="--stop:'+(-Math.max(0,wheelOrder.indexOf(n))*360/37)+'deg">'+slots+'<div class="wh14-wheel-hub"><small>WORLD HOOPS</small><strong>'+ (n??'WH')+'</strong></div></div><span class="wh14-wheel-ball"></span></div>';
+ return '<div class="wh14-wheel-stage" data-number="'+(n??'')+'"><div class="wh14-wheel-pointer"></div><div class="wh14-wheel-rotor" style="--stop:'+(-Math.max(0,wheelOrder.indexOf(n))*360/37)+'deg;--wheel-colors:'+gradient+'">'+slots+'<div class="wh14-wheel-hub"><small>WORLD HOOPS</small><strong>'+ (n??'WH')+'</strong></div></div><span class="wh14-wheel-ball"></span></div>';
 }
 function casino(s){
  const x=core(s),b=x.bj,tab=x.casinoTab||'bj';
