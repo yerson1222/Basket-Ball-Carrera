@@ -13,6 +13,8 @@ function core(s){
  const c=E.initWorld(s);
  if(!c.v13)c.v13={};
  const x=c.v13;
+ if(!Array.isArray(x.rouletteHistory))x.rouletteHistory=Number.isInteger(x.roulette?.n)?[x.roulette.n]:[];
+ if(!Array.isArray(x.baccaratHistory))x.baccaratHistory=x.baccarat?.player&&x.baccarat?.banker&&x.baccarat?.winner?[{player:bacTotal(x.baccarat.player),banker:bacTotal(x.baccarat.banker),winner:x.baccarat.winner}]:[];
  for(const k of ['tickets','slip','ledger','events','cases'])if(!Array.isArray(x[k]))x[k]=[];
  for(const k of ['suspension','risk','net'])if(!Number.isFinite(x[k]))x[k]=0;
  return x;
@@ -30,7 +32,9 @@ function markets(s,f,club,league){
  const home=club(f.home),away=club(f.away),h=E.teamStrength(home),a=E.teamStrength(away),c=E.initWorld(s),rec=s.world.table||{};
  const form=id=>{const r=rec[id];return r?(r.w-r.l)/Math.max(4,r.w+r.l)*4:0;};
  const own=(s.player.injury||core(s).suspension?-3:clamp((c.coachTrust-55)*.045,-2.1,2));
- const diff=(h-a)*1.32+3+form(f.home)-form(f.away)+(f.home===s.teamId?own:-own);
+ const upcoming=s.world.phase==='regular'?s.world.week+1:s.world.rounds.length+1+(s.world.playoffs?.round||0),P=window.WH_V15;
+ const condition=P?P.teamCondition(s,f.home,upcoming)-P.teamCondition(s,f.away,upcoming):0;
+ const diff=(h-a)*1.32+3+form(f.home)-form(f.away)+(f.home===s.teamId?own:-own)+condition;
  const p=clamp(1/(1+Math.exp(-diff/9)),.08,.92);
  const pace=league(s.leagueId).quality>=93?111:league(s.leagueId).quality>=84?90:league(s.leagueId).quality>=74?84:77;
  const result=[{id:'home',group:'Ganador',label:home.name,kind:'ml',side:f.home,odds:odds(p)},{id:'away',group:'Ganador',label:away.name,kind:'ml',side:f.away,odds:odds(1-p)}];
@@ -48,23 +52,24 @@ function markets(s,f,club,league){
   for(const [k,n,base,sd] of stats){const valid=k==='tov'?games.filter(g=>Number.isFinite(g.tov)):games;const mean=valid.length?valid.reduce((v,g)=>v+value(g,k),0)/valid.length:base;const line=Math.max(.5,Math.floor(mean)+.5);pair(k,n,line,'stat',sd,mean);if(['pts','reb','ast','pra','threes'].includes(k)){const step=Math.max(1,Math.round(sd*.65));if(line-step>=.5)pair(k,n,line-step,'stat',sd,mean,true);pair(k,n,line+step,'stat',sd,mean,true);}}
   for(const [k,n,pr] of [['dd','Doble-doble',.27],['td','Triple-doble',.08]])for(const side of ['yes','no'])result.push({id:k+side,group:n,label:side==='yes'?'Sí':'No',kind:k,side,odds:odds(side==='yes'?pr:1-pr)});
  }
-  const V6=window.WH_V6,week=s.world.phase==='regular'?s.world.week+1:s.world.rounds.length+1+(s.world.playoffs?.round||0);
- if(V6?.lineup){
-  const names=V6.lineup(s,s.teamId,week,s.career.v12Help);
-  const records=s.world.results||[];
-  names.forEach((name,i)=>{
-   const history=records.filter(g=>g.home===s.teamId||g.away===s.teamId).slice(-12).map(g=>(g.boxScore?.[s.teamId]||V6.boxScore(s,g,s.teamId,s.world.playerGames.find(p=>p.week===g.week&&p.stage===g.stage))).find(p=>p.name===name)).filter(Boolean);
-   const participant='mate-'+i;
+ const V15=window.WH_V15,week=s.world.phase==='regular'?s.world.week+1:s.world.rounds.length+1+(s.world.playoffs?.round||0);
+ if(V15)for(const id of [s.teamId,f.home===s.teamId?f.away:f.home]){
+  const players=V15.preview(s,id,week),records=s.world.results||[];
+  players.forEach((p,i)=>{
+   const name=p.name,participant=(id===s.teamId?'mate-':'opp-')+i;
+   const history=records.filter(g=>g.home===id||g.away===id).slice(-12).map(g=>(V15.decode(g,id)||g.boxScore?.[id]||[]).find(row=>row.name===name)).filter(Boolean);
+   const modifier=(.75+p.form/200)*(.65+p.energy/220)*(.85+p.morale/350);
    for(const [k,n,base,sd] of stats){
-    const typical=k==='pts'?Math.max(5,(pace-14)/names.length*(1.4-i*.08)):k==='pra'?Math.max(11,(pace-14)/names.length*(1.4-i*.08)+9):k==='reb'?5:k==='ast'?3:k==='min'?24:base;
-    const mean=history.length?history.reduce((v,g)=>v+value(g,k),0)/history.length:typical;
+    const typical=k==='pts'?Math.max(2,(pace-(id===s.teamId?14:0))/12*(p.role==='Titular'?1.45:p.role==='Rotación'?1:.65)):k==='pra'?Math.max(5,base*(p.role==='Titular'?.8:.55)):k==='reb'?(['PF','C'].includes(p.position)?6:3):k==='ast'?(['PG','SG'].includes(p.position)?4:2):k==='min'?(p.role==='Titular'?30:p.role==='Rotación'?20:12):base;
+    const old=history.length?history.reduce((v,g)=>v+value(g,k),0)/history.length:typical;
+    const mean=Math.max(.15,(old*.65+typical*.35)*modifier+(p.boost&&(k===p.boostStat||(k==='pra'&&['pts','reb','ast'].includes(p.boostStat))||(k==='pr'&&['pts','reb'].includes(p.boostStat))||(k==='pa'&&['pts','ast'].includes(p.boostStat))||(k==='ra'&&['reb','ast'].includes(p.boostStat)))?p.boost*.75:0));
     const line=Math.max(.5,Math.floor(mean)+.5);
     for(const side of ['over','under']){
      const pr=1/(1+Math.exp((line-mean)/Math.max(.65,sd*.65)));
-     result.push({id:participant+'-'+k+'-'+side,group:name+' · '+n,marketName:n,participant,name,label:(side==='over'?'Más de ':'Menos de ')+line,kind:'stat',stat:k,line,side,odds:odds(side==='over'?pr:1-pr)});
+     result.push({id:participant+'-'+k+'-'+side,group:name+' · '+n+' · '+club(id).abbr,marketName:n,participant,name,teamId:id,label:(side==='over'?'Más de ':'Menos de ')+line,kind:'stat',stat:k,line,side,odds:odds(side==='over'?pr:1-pr)});
     }
    }
-   for(const [k,n,pr] of [['dd','Doble-doble',.2],['td','Triple-doble',.08]])for(const side of ['yes','no'])result.push({id:participant+'-'+k+'-'+side,group:name+' · '+n,marketName:n,participant,name,kind:k,side,odds:odds(side==='yes'?pr:1-pr)});
+   for(const [k,n,pr] of [['dd','Doble-doble',.2],['td','Triple-doble',.08]])for(const side of ['yes','no'])result.push({id:participant+'-'+k+'-'+side,group:name+' · '+n+' · '+club(id).abbr,marketName:n,participant,name,teamId:id,kind:k,side,odds:odds(side==='yes'?pr:1-pr)});
   });
  }
  return result;
@@ -72,7 +77,8 @@ function markets(s,f,club,league){
 function book(s,f,club,league,teamLogo){
  const x=core(s),k=key(s);
  if(!f)return header(s)+panel('Sin partido disponible','<p>Vuelve cuando exista un próximo rival.</p>'+btn('Investigaciones','integrity'))+history(s);
- if(x.marketKey!==k||x.marketVersion!==14){if(x.marketKey!==k)x.slip=[];x.marketKey=k;x.marketVersion=14;x.market=markets(s,f,club,league);}
+ const revision=JSON.stringify([s.career.v12Help||null,window.WH_V6.core(s).players]);
+ if(x.marketKey!==k||x.marketVersion!==15||x.marketRevision!==revision){if(x.marketKey!==k||x.marketVersion!==15)x.slip=[];x.marketKey=k;x.marketVersion=15;x.marketRevision=revision;x.market=markets(s,f,club,league);}
  const ms=x.market||[],selected=x.slip.map(id=>ms.find(m=>m.id===id)).filter(Boolean),locked=!!s.liveMatch||!!s.career.pendingImpact;
  const team=m=>['ml','spread','total','teamtotal'].includes(m.kind),personal=m=>!m.participant&&!team(m),mates=[...new Map(ms.filter(m=>m.participant).map(m=>[m.participant,m.name])).entries()];
  const tabs=[['team','Partido'],['self',s.player.name],...mates],tab=tabs.some(t=>t[0]===x.bookTab)?x.bookTab:'team';
@@ -80,7 +86,9 @@ function book(s,f,club,league,teamLogo){
  const groups=[...new Set(visible.map(m=>m.group))],total=selected.reduce((v,m)=>v*m.odds,1);
  const home=club(f.home),away=club(f.away);
  const banner='<div class="wh14-sports-hero"><span class="wh14-eyebrow">WORLD HOOPS · MATCHDAY</span><div class="wh14-versus"><div>'+(teamLogo?teamLogo(home,'lg'):'')+'<strong>'+esc(home.name)+'</strong><small>LOCAL</small></div><i>VS</i><div>'+(teamLogo?teamLogo(away,'lg'):'')+'<strong>'+esc(away.name)+'</strong><small>VISITANTE</small></div></div><div class="wh14-hero-foot"><span class="wh14-status '+(locked?'closed':'')+'">'+(locked?'Mercados cerrados':'Mercados abiertos')+'</span><span>Jornada '+(s.world.week+1)+'</span></div></div>';
- const tabsHTML='<div class="wh14-market-tabs" aria-label="Mercados por jugador">'+tabs.map(([id,name])=>btn(esc(name),'book-tab','data-id="'+esc(id)+'" aria-pressed="'+(id===tab)+'"',id===tab?'primary':'ghost')).join('')+'</div>';
+ const tabHTML=([id,name])=>btn(esc(name),'book-tab','data-id="'+esc(id)+'" aria-pressed="'+(id===tab)+'"',id===tab?'primary':'ghost');
+ const selectedPlayer=ms.find(m=>m.participant===tab),week=s.world.phase==='regular'?s.world.week+1:s.world.rounds.length+1+(s.world.playoffs?.round||0);
+ const tabsHTML='<div class="wh14-market-tabs">'+tabs.slice(0,2).map(tabHTML).join('')+'</div><details class="wh15-player-select" '+(tab.startsWith('mate-')?'open':'')+'><summary>Mis compañeros · '+mates.filter(t=>t[0].startsWith('mate-')).length+'</summary><div class="wh14-market-tabs">'+mates.filter(t=>t[0].startsWith('mate-')).map(tabHTML).join('')+'</div></details><details class="wh15-player-select" '+(tab.startsWith('opp-')?'open':'')+'><summary>Equipo rival · '+mates.filter(t=>t[0].startsWith('opp-')).length+'</summary><div class="wh14-market-tabs">'+mates.filter(t=>t[0].startsWith('opp-')).map(tabHTML).join('')+'</div></details>'+(selectedPlayer?'<div class="wh15-market-profile"><strong>'+esc(selectedPlayer.name)+'</strong>'+window.WH_V15.status(window.WH_V15.profile(s,selectedPlayer.teamId,selectedPlayer.name,week))+'</div>':'');
  const marketHTML=groups.map(g=>'<div class="wh13-market"><b>'+esc(visible.find(m=>m.group===g)?.marketName||g)+'</b><div class="wh13-options">'+visible.filter(m=>m.group===g).map(m=>btn(esc(m.label||((m.side==='over'?'Más de ':'Menos de ')+m.line))+'<strong>'+m.odds.toFixed(2)+'</strong>','select','data-id="'+esc(m.id)+'" aria-pressed="'+x.slip.includes(m.id)+'" '+(locked?'disabled':''),x.slip.includes(m.id)?'primary':'ghost')).join('')+'</div></div>').join('')||'<p class="muted">No hay mercados disponibles para este jugador.</p>';
  const ticket=panel('Mi boleto <span class="wh14-count">'+selected.length+'</span>',(selected.length?selected.map(m=>'<div class="wh14-pick"><div><small>'+esc(m.group)+'</small><strong>'+esc(m.label||((m.side==='over'?'Más de ':'Menos de ')+m.line))+'</strong></div><b>'+m.odds.toFixed(2)+'</b>'+btn('×','select','aria-label="Quitar selección" data-id="'+esc(m.id)+'" '+(locked?'disabled':''))+'</div>').join(''):'<div class="wh14-empty-ticket">Selecciona un mercado para crear tu boleto.</div>')+'<div class="wh14-total">Cuota total <b>'+total.toFixed(2)+'</b></div><label>Importe <input id="wh13-stake" type="number" min="1" step="1" max="'+Math.floor(wallet(s).cash)+'" value="'+(x.bookStake||100)+'"></label><div class="wh14-total">Retorno potencial <strong id="wh13-potential" data-odds="'+total+'">'+money((x.bookStake||100)*total)+'</strong></div>'+btn('Confirmar boleto','place',locked||!selected.length?'disabled':'','primary')+btn('Limpiar','clear'));
  return header(s)+banner+'<div class="wh13-layout wh14-book"><div>'+panel('Mercados del encuentro',tabsHTML+marketHTML)+'</div><aside class="wh14-betslip">'+ticket+panel('Integridad deportiva','<p>Consulta tus expedientes y sanciones de la liga.</p>'+btn(x.case?'Expediente pendiente':'Investigaciones','integrity','','ghost'))+'</aside></div>'+history(s);
@@ -107,7 +115,7 @@ function alterLine(s,line,teamPts){
 function alterScore(s,own){return mode(s)==='fix'&&!s.player.injury?clamp(own+rand(-12,3),53,170):own;}
 function suspendLine(s,round,stage,opponent){const x=core(s);if(!x.suspension)return null;x.suspension--;if(s.player.injury>0)s.player.injury--;return {week:round,stage,opponent,pts:0,reb:0,ast:0,stl:0,blk:0,min:0,fg:0,threes:0,tov:0,dnp:true,suspended:true};}
 function grade(l,r,g){
- if(l.participant){g=Object.values(r.boxScore||{}).flat().find(p=>p.name===l.name);if(!g)return null;}
+ if(l.participant){const id=l.teamId||Object.keys(r.boxV15||r.boxScore||{}).find(id=>(window.WH_V15?.decode(r,id)||r.boxScore?.[id]||[]).some(p=>p.name===l.name));g=(window.WH_V15?.decode(r,id)||r.boxScore?.[id]||[]).find(p=>p.name===l.name);if(!g)return null;}
  if(['stat','dd','td'].includes(l.kind)&&g.dnp)return null;
  if(l.kind==='ml')return r.winner===l.side;
  if(l.kind==='spread'){const v=(r.home===l.side?r.hs-r.as:r.as-r.hs)+l.line;return v===0?null:v>0;}
@@ -140,6 +148,14 @@ const bjValue=cards=>{let sum=cards.reduce((a,c)=>a+Math.min(c.rank,10),0);if(ca
 const natural=h=>h.cards.length===2&&bjValue(h.cards)===21&&!h.split;
 const cardHTML=(c,i=0)=>{const rank=['','A','2','3','4','5','6','7','8','9','10','J','Q','K'][c.rank];return '<span class="wh13-card '+(['♥','♦'].includes(c.suit)?'red':'')+'" style="--deal:'+i+'"><span class="wh14-card-corner">'+rank+'<small>'+c.suit+'</small></span><b>'+c.suit+'</b><span class="wh14-card-corner bottom">'+rank+'<small>'+c.suit+'</small></span></span>';};
 const cardsHTML=cs=>cs.map((c,i)=>cardHTML(c,i)).join('');
+function dealer(){
+ return '<div class="wh15-dealer" aria-hidden="true"><svg viewBox="0 0 330 140"><defs><linearGradient id="wh15-vest" x2="1" y2="1"><stop stop-color="#303b46"/><stop offset="1" stop-color="#101821"/></linearGradient><linearGradient id="wh15-skin" x2="1" y2="1"><stop stop-color="#d7a780"/><stop offset="1" stop-color="#946349"/></linearGradient></defs><path d="M86 140V92Q90 65 133 61L195 61Q240 68 244 92V140" fill="url(#wh15-vest)"/><path d="M132 61l32 47 31-47-13-12h-35z" fill="#f4eee2"/><path d="M156 73l8 7 8-7 4 12-12-5-12 5z" fill="#20212a"/><ellipse cx="164" cy="37" rx="24" ry="29" fill="url(#wh15-skin)"/><path d="M141 32Q135 8 158 4 188 0 189 31L182 24Q158 28 146 20Z" fill="#29272a"/><path d="M154 42q10 8 20 0" fill="none" stroke="#6d4b3f" stroke-width="1.4"/><circle cx="155" cy="34" r="1.8" fill="#252026"/><circle cx="173" cy="34" r="1.8" fill="#252026"/><g class="wh15-dealer-arm"><path d="M92 88Q76 104 104 123L151 112 145 97 116 104 119 83" fill="#e5e4df"/><path d="M143 98q18-8 28 0l9 5-8 13-21-5" fill="url(#wh15-skin)"/><rect x="168" y="94" width="23" height="32" rx="3" fill="#4b395f" stroke="#dfd3c4" stroke-width="2" transform="rotate(-14 179 110)"/></g><path d="M227 86q18 21-6 37l-44-6 5-14 30 5-8-26" fill="#e5e4df"/><path d="M185 103q-13-8-23 0l-7 10 9 7 17-3" fill="url(#wh15-skin)"/><path d="M0 132H330V140H0z" fill="#9c7b4c"/><rect x="146" y="123" width="42" height="11" rx="2" fill="#554568" stroke="#c4ad8b"/></svg><span>CRUPIER · WORLD HOOPS</span></div>';
+}
+function baccaratHistory(x){
+ const rows=x.baccaratHistory||[],counts={player:0,banker:0,tie:0};for(const r of rows)counts[r.winner]++;
+ return '<div class="wh15-road"><div class="wh15-road-head"><div><small>HISTORIAL DE LA SESIÓN</small><h3>Registro de baccarat</h3></div>'+btn('Nueva sesión','bac-reset','','ghost')+'</div><div class="wh15-road-summary"><span>Jugador <b>'+counts.player+'</b></span><span>Banca <b>'+counts.banker+'</b></span><span>Empate <b>'+counts.tie+'</b></span></div><div class="wh15-bead-scroll"><div class="wh15-beads">'+rows.map((r,i)=>'<div class="wh15-bead '+r.winner+'" title="Ronda '+(i+1)+' · '+r.player+'–'+r.banker+'"><b>'+({player:'J',banker:'B',tie:'E'}[r.winner])+'</b><small>'+r.player+'–'+r.banker+'</small></div>').join('')+'</div></div><details><summary>Todos los resultados de esta sesión ('+rows.length+')</summary><div class="v6-scroll"><table class="v6-table"><thead><tr><th>#</th><th>Jugador</th><th>Banca</th><th>Ganador</th></tr></thead><tbody>'+rows.map((r,i)=>'<tr><td>'+(i+1)+'</td><td>'+r.player+'</td><td>'+r.banker+'</td><td>'+({player:'Jugador',banker:'Banca',tie:'Empate'}[r.winner])+'</td></tr>').join('')+'</tbody></table></div></details></div>';
+}
+function rouletteHistory(x){return '<div class="wh15-wheel-history"><small>ÚLTIMOS RESULTADOS</small><div>'+((x.rouletteHistory||[]).slice(-25).reverse().map(n=>'<span class="'+(n===0?'green':red.has(n)?'red':'black')+'">'+n+'</span>').join('')||'<span>—</span>')+'</div></div>';}
 const wheelOrder=[0,32,15,19,4,21,2,25,17,34,6,27,13,36,11,30,8,23,10,5,24,16,33,1,20,14,31,9,22,18,29,7,28,12,35,3,26];
 function wheel(n){
  const segment=360/37,gradient='conic-gradient(from '+(-segment/2)+'deg, '+wheelOrder.map((v,i)=>(v===0?'#21794e':red.has(v)?'#a12e40':'#1a2730')+' '+(i*segment)+'deg '+((i+1)*segment)+'deg').join(',')+')';
@@ -152,16 +168,16 @@ function casino(s){
  const hero='<div class="wh14-casino-hero"><div><span class="wh14-eyebrow">WORLD HOOPS · PRIVATE CLUB</span><h2>Casino</h2><p>Mesas de juego</p></div><div class="wh14-chip-stack"><i></i><i></i><i></i><i></i><i></i></div></div>';
  let table='';
  if(tab==='bj'){
-  table='<div class="wh14-table-label"><span>BLACKJACK</span><small>3:2 · CRUPIER 17</small></div>';
+  table='<div class="wh14-table-label"><span>BLACKJACK</span><small>3:2 · CRUPIER 17</small></div>'+dealer();
   if(b){
    table+='<div class="wh14-card-zone"><h3>Crupier '+(b.done?'· '+bjValue(b.dealer):'')+'</h3><div class="wh13-cards">'+cardHTML(b.dealer[0])+(b.done?cardsHTML(b.dealer.slice(1)):'<span class="wh13-card back" style="--deal:1">WH</span>')+'</div></div><div class="wh14-felt-line"></div>';
    table+=b.hands.map((h,i)=>'<div class="wh13-hand '+(i===b.index&&!b.done?'active':'')+'"><h3>Mano '+(i+1)+' · '+bjValue(h.cards)+' · '+money(h.stake)+'</h3><div class="wh13-cards">'+cardsHTML(h.cards)+'</div>'+(h.result?'<p class="wh14-round-result">'+esc(h.result)+'</p>':'')+'</div>').join('');
    table+=b.done?'<div class="wh14-round-result">'+esc(b.result)+'</div>':'<div class="wh14-table-actions">'+btn('Pedir carta','bj-hit','','primary')+btn('Plantarse','bj-stand')+btn('Doblar','bj-double',b.hands[b.index].cards.length!==2||wallet(s).cash<b.hands[b.index].stake?'disabled':'')+btn('Dividir','bj-split',b.hands.length>=4||b.hands[b.index].cards.length!==2||b.hands[b.index].cards[0].rank!==b.hands[b.index].cards[1].rank||wallet(s).cash<b.hands[b.index].stake?'disabled':'')+'</div>';
   }else table+='<div class="wh14-card-zone"><h3>Crupier</h3><div class="wh13-cards"><span class="wh13-card back">WH</span><span class="wh13-card back">WH</span></div></div><div class="wh14-felt-line"></div><div class="wh14-card-zone"><h3>Tu mano</h3><div class="wh14-empty-hand">Esperando el reparto</div></div>';
  }else if(tab==='roulette'){
-  const last=x.roulette;table='<div class="wh14-table-label"><span>RULETA EUROPEA</span><small>37 NÚMEROS</small></div>'+wheel(last?.n)+'<div class="wh13-roulette wh14-roulette-grid">'+Array.from({length:37},(_,n)=>btn(''+n,'roulette','data-id="n'+n+'" aria-label="Número '+n+'"',n===0?'green':red.has(n)?'red':'black')).join('')+'</div><div class="wh13-options wh14-table-actions">'+[['red','Rojo'],['black','Negro'],['even','Par'],['odd','Impar'],['low','1–18'],['high','19–36'],['d1','1.ª docena'],['d2','2.ª docena'],['d3','3.ª docena'],['c1','Columna 1'],['c2','Columna 2'],['c3','Columna 3']].map(([id,l])=>btn(l,'roulette','data-id="'+id+'"')).join('')+'</div><div class="wh14-round-result">'+esc(last?.message||'Selecciona tu apuesta para girar.')+'</div>';
+  const last=x.roulette;table='<div class="wh14-table-label"><span>RULETA EUROPEA</span><small>37 NÚMEROS</small></div>'+wheel(last?.n)+'<div class="wh13-roulette wh14-roulette-grid">'+Array.from({length:37},(_,n)=>btn(''+n,'roulette','data-id="n'+n+'" aria-label="Número '+n+'"',n===0?'green':red.has(n)?'red':'black')).join('')+'</div><div class="wh13-options wh14-table-actions">'+[['red','Rojo'],['black','Negro'],['even','Par'],['odd','Impar'],['low','1–18'],['high','19–36'],['d1','1.ª docena'],['d2','2.ª docena'],['d3','3.ª docena'],['c1','Columna 1'],['c2','Columna 2'],['c3','Columna 3']].map(([id,l])=>btn(l,'roulette','data-id="'+id+'"')).join('')+'</div><div class="wh14-round-result">'+esc(last?.message||'Selecciona tu apuesta para girar.')+'</div>'+rouletteHistory(x);
  }else{
-  const last=x.baccarat;table='<div class="wh14-table-label"><span>BACCARAT</span><small>PUNTO Y BANCA</small></div><div class="wh14-baccarat-hands"><div class="wh14-card-zone"><h3>Jugador '+(last?'· '+bacTotal(last.player):'')+'</h3><div class="wh13-cards">'+(last?cardsHTML(last.player):'<span class="wh13-card back">WH</span><span class="wh13-card back">WH</span>')+'</div></div><div class="wh14-card-zone"><h3>Banca '+(last?'· '+bacTotal(last.banker):'')+'</h3><div class="wh13-cards">'+(last?cardsHTML(last.banker):'<span class="wh13-card back">WH</span><span class="wh13-card back">WH</span>')+'</div></div></div><div class="wh14-round-result">'+esc(last?.message||'Elige jugador, banca o empate.')+'</div><div class="wh14-table-actions">'+[['player','Jugador · 1:1'],['banker','Banca · 0,95:1'],['tie','Empate · 8:1']].map(([id,l])=>btn(l,'baccarat','data-id="'+id+'"','primary')).join('')+'</div>';
+  const last=x.baccarat;table='<div class="wh14-table-label"><span>BACCARAT</span><small>PUNTO Y BANCA</small></div>'+dealer()+'<div class="wh14-baccarat-hands"><div class="wh14-card-zone"><h3>Jugador '+(last?'· '+bacTotal(last.player):'')+'</h3><div class="wh13-cards">'+(last?cardsHTML(last.player):'<span class="wh13-card back">WH</span><span class="wh13-card back">WH</span>')+'</div></div><div class="wh14-card-zone"><h3>Banca '+(last?'· '+bacTotal(last.banker):'')+'</h3><div class="wh13-cards">'+(last?cardsHTML(last.banker):'<span class="wh13-card back">WH</span><span class="wh13-card back">WH</span>')+'</div></div></div><div class="wh14-round-result">'+esc(last?.message||'Elige jugador, banca o empate.')+'</div><div class="wh14-table-actions">'+[['player','Jugador · 1:1'],['banker','Banca · 0,95:1'],['tie','Empate · 8:1']].map(([id,l])=>btn(l,'baccarat','data-id="'+id+'"','primary')).join('')+'</div>'+baccaratHistory(x);
  }
  const stakePanel='<div class="wh14-stake-bar"><label>Importe de la apuesta<input id="wh13-casino-stake" type="number" min="1" step="1" value="'+(x.casinoStake||100)+'" '+(tab==='bj'&&b&&!b.done?'disabled':'')+'></label>'+(tab==='bj'&&(!b||b.done)?btn('Repartir cartas','bj-start','','primary'):'')+'</div>';
  return header(s)+hero+'<div class="wh14-casino-tabs">'+tabs.map(([id,l,d])=>btn('<b>'+l+'</b><small>'+d+'</small>','casino-tab','data-id="'+id+'" aria-pressed="'+(tab===id)+'"',tab===id?'primary':'ghost')).join('')+'</div>'+panel(tabs.find(t=>t[0]===tab)?.[1]||'Casino',stakePanel+'<div class="wh13-table wh14-casino-table" data-game="'+tab+'">'+table+'</div><p class="muted">'+(tab==='bj'?'Crupier se planta en 17; blackjack 3:2, empate devuelve la apuesta.':tab==='roulette'?'Un solo cero. Pleno 35:1, docena o columna 2:1, apuestas simples 1:1.':'Reglas de tercera carta; comisión del 5% para banca.')+'</p>')+panel('Movimientos recientes',x.ledger.slice(0,15).map(l=>'<p>'+esc(l.label)+' · <b>'+money(l.delta)+'</b></p>').join('')||'<p>Sin movimientos.</p>');
@@ -177,10 +193,10 @@ function blackjack(s,act){const x=core(s);let b=x.bj;
  if(act==='split'){if(b.hands.length>=4||h.cards.length!==2||h.cards[0].rank!==h.cards[1].rank||!debit(s,h.stake,'Blackjack · dividir'))return;const second=h.cards.pop(),ace=second.rank===1;h.cards.push(b.deck.pop());h.split=true;h.done=ace||bjValue(h.cards)===21;const h2={cards:[second,b.deck.pop()],stake:h.stake,split:true};h2.done=ace||bjValue(h2.cards)===21;b.hands.splice(b.index+1,0,h2);}
  advanceBJ(s,b);
 }
-function roulette(s,id){const amount=stake();if(!/^(n(?:[0-9]|[12][0-9]|3[0-6])|red|black|even|odd|low|high|d[123]|c[123])$/.test(id)||!debit(s,amount,'Ruleta · apuesta'))return 'Importe inválido.';const n=rand(0,36);let mult=0;if(/^n\d/.test(id))mult=n===Number(id.slice(1))?36:0;else if(n!==0){if(id==='red')mult=red.has(n)?2:0;else if(id==='black')mult=!red.has(n)?2:0;else if(id==='even'||id==='odd')mult=(n%2===0)===(id==='even')?2:0;else if(id==='low'||id==='high')mult=(n<=18)===(id==='low')?2:0;else if(id[0]==='d')mult=Math.ceil(n/12)===+id[1]?3:0;else if(id[0]==='c')mult=(n-1)%3+1===+id[1]?3:0;}credit(s,amount*mult,'Ruleta · retorno');core(s).roulette={n,selection:id,stake:amount,payout:amount*mult,message:'Número '+n+' · retorno '+money(amount*mult)};}
+function roulette(s,id){const amount=stake();if(!/^(n(?:[0-9]|[12][0-9]|3[0-6])|red|black|even|odd|low|high|d[123]|c[123])$/.test(id)||!debit(s,amount,'Ruleta · apuesta'))return 'Importe inválido.';const n=rand(0,36);let mult=0;if(/^n\d/.test(id))mult=n===Number(id.slice(1))?36:0;else if(n!==0){if(id==='red')mult=red.has(n)?2:0;else if(id==='black')mult=!red.has(n)?2:0;else if(id==='even'||id==='odd')mult=(n%2===0)===(id==='even')?2:0;else if(id==='low'||id==='high')mult=(n<=18)===(id==='low')?2:0;else if(id[0]==='d')mult=Math.ceil(n/12)===+id[1]?3:0;else if(id[0]==='c')mult=(n-1)%3+1===+id[1]?3:0;}credit(s,amount*mult,'Ruleta · retorno');const x=core(s);x.rouletteHistory??=[];x.rouletteHistory.push(n);x.rouletteHistory=x.rouletteHistory.slice(-100);x.roulette={n,selection:id,stake:amount,payout:amount*mult,message:'Número '+n+' · retorno '+money(amount*mult)};}
 const bacVal=c=>c.rank>=10?0:c.rank;
 const bacTotal=cs=>cs.reduce((a,c)=>a+bacVal(c),0)%10;
-function baccarat(s,id){const amount=stake();if(!['player','banker','tie'].includes(id)||!debit(s,amount,'Baccarat · apuesta'))return 'Importe inválido.';const d=deck(),p=[d.pop(),d.pop()],b=[d.pop(),d.pop()];let pt=bacTotal(p),bt=bacTotal(b);if(pt<8&&bt<8){let third=null;if(pt<=5){const c=d.pop();p.push(c);third=bacVal(c);}if(third===null?bt<=5:bt<=2||bt===3&&third!==8||bt===4&&third>=2&&third<=7||bt===5&&third>=4&&third<=7||bt===6&&[6,7].includes(third))b.push(d.pop());}pt=bacTotal(p);bt=bacTotal(b);const win=pt===bt?'tie':pt>bt?'player':'banker',mult=win===id?(id==='tie'?9:id==='banker'?1.95:2):win==='tie'&&id!=='tie'?1:0;credit(s,round(amount*mult),'Baccarat · retorno');core(s).baccarat={player:p,banker:b,winner:win,stake:amount,payout:round(amount*mult),message:'Jugador '+pt+' · Banca '+bt+' · retorno '+money(amount*mult)};}
+function baccarat(s,id){const amount=stake();if(!['player','banker','tie'].includes(id)||!debit(s,amount,'Baccarat · apuesta'))return 'Importe inválido.';const d=deck(),p=[d.pop(),d.pop()],b=[d.pop(),d.pop()];let pt=bacTotal(p),bt=bacTotal(b);if(pt<8&&bt<8){let third=null;if(pt<=5){const c=d.pop();p.push(c);third=bacVal(c);}if(third===null?bt<=5:bt<=2||bt===3&&third!==8||bt===4&&third>=2&&third<=7||bt===5&&third>=4&&third<=7||bt===6&&[6,7].includes(third))b.push(d.pop());}pt=bacTotal(p);bt=bacTotal(b);const win=pt===bt?'tie':pt>bt?'player':'banker',mult=win===id?(id==='tie'?9:id==='banker'?1.95:2):win==='tie'&&id!=='tie'?1:0;credit(s,round(amount*mult),'Baccarat · retorno');const x=core(s);x.baccaratHistory??=[];x.baccaratHistory.push({player:pt,banker:bt,winner:win});x.baccarat={player:p,banker:b,winner:win,stake:amount,payout:round(amount*mult),message:'Jugador '+pt+' · Banca '+bt+' · retorno '+money(amount*mult)};}
 /* Preserve original item IDs and fill to exactly 300. */
 const catalog=[
  ['Automóviles','🚗',25000,['Toyota Corolla','Honda Civic','Mazda 3','Volkswagen Golf','Hyundai Elantra','Kia K5','Subaru WRX','Tesla Model 3','Audi A4','BMW M340i','Mercedes C43','Lexus IS','Ford Mustang GT','Chevrolet Corvette','BMW M4','Audi RS5','Porsche 911','Mercedes AMG GT','Nissan GT-R','Porsche GT3 RS','McLaren Artura','Ferrari Roma','Lamborghini Huracán','Ferrari 296','Bugatti Chiron'],['Base','Performance']],
@@ -252,7 +268,7 @@ function action(s,act,el,news){
  const x=core(s),id=el.dataset.id;
  const bookAmount=Number(document.getElementById('wh13-stake')?.value),casinoAmount=stake();if(Number.isFinite(bookAmount)&&bookAmount>=1)x.bookStake=bookAmount;if(Number.isFinite(casinoAmount)&&casinoAmount>=1)x.casinoStake=casinoAmount;
  switch(act){case 'book-tab':x.bookTab=id;break;case 'select':select(s,id);break;case 'clear':x.slip=[];break;case 'place':return place(s,Number(document.getElementById('wh13-stake')?.value));case 'decision':case 'match-decision':decision(s,id);break;
- case 'casino-tab':x.casinoTab=id;break;case 'roulette':return roulette(s,id);case 'baccarat':return baccarat(s,id);
+ case 'bac-reset':if(window.confirm('¿Comenzar un nuevo registro de baccarat? El saldo no cambia.'))x.baccaratHistory=[];break;case 'casino-tab':x.casinoTab=id;break;case 'roulette':return roulette(s,id);case 'baccarat':return baccarat(s,id);
  case 'start-case':if(x.case&&!x.case.started)x.case.started=true;break;case 'answer':answer(s,+id,news);break;
  case 'life-answer':return resolveLife(s,Number(id),news);
  case 'shop-cat':x.shopCat=id;x.shopPage=0;break;case 'shop-page':x.shopPage=Math.max(0,(x.shopPage||0)+Number(id));break;

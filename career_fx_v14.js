@@ -14,7 +14,7 @@ function afterRender(root){
  if(!pending)return;const effect=pending;pending=null;
  if(reduced())return;
  if(effect==='spin'||effect==='deal'){
-  if(!table)return;const ms=effect==='spin'?2200:750;lockedUntil=Date.now()+ms;
+  if(!table)return;const ms=effect==='spin'?3050:1000;lockedUntil=Date.now()+ms;
   const cls=effect==='spin'?'wh14-spinning':'wh14-dealing';table.classList.add(cls);
   table.setAttribute('aria-busy','true');
   const buttons=[...table.querySelectorAll('button:not(:disabled)'),...root.querySelectorAll('[data-action="v13-bj-start"]:not(:disabled)')];
