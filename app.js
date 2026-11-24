@@ -128,7 +128,9 @@ function teamScore(a,b,lid,home){
   const c=CAREER.initWorld(save),ov=playerOverall();
   own=V13.core(save).suspension>0?-2:clamp((ov-aPower)*.19,-3.5,3.5)+clamp((c.coachTrust-55)*.045,-2.1,2)+(v12Help()?.score||0);
  }
- return clamp(Math.round(pace+base+own+rand(-12.5,12.5)),53,170);
+ const week=save?.world.phase==='regular'?save.world.week+1:(save?.world.rounds.length||0)+1+(save?.world.playoffs?.round||0);
+ const condition=save?window.WH_V15.teamCondition(save,a.id,week)-window.WH_V15.teamCondition(save,b.id,week):0;
+ return clamp(Math.round(pace+base+own+condition+rand(-12.5,12.5)),53,170);
 }
 function calcPlayerGame(teamPts,opponent,lid,round,stage='regular'){
  const p=save.player,ov=playerOverall(),t=currentTeam(),gap=ov-league(lid).quality;const dnp=p.injury>0;
