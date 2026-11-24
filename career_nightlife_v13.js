@@ -155,17 +155,44 @@ for(const [cat,icon,base,names,editions] of catalog)for(let i=0;i<names.length;i
  candidates.push({id:'v13-'+cat.charCodeAt(0)+'-'+catalog.findIndex(a=>a[0]===cat)+'-'+i+'-'+j,name:names[i]+' · '+editions[j],price,category:cat,icon,pop,confidence,risk,desc:'+'+pop+' popularidad · +'+confidence+' confianza · riesgo '+risk+'/10'});
 }
 // Round-robin by category keeps every category represented.
-const buckets=catalog.map(c=>{const items=candidates.filter(i=>i.category===c[0]);return items.filter((_,i)=>i%c[4].length===0).concat(items.filter((_,i)=>i%c[4].length!==0));});while(E.items.length<300&&buckets.some(b=>b.length))for(const b of buckets){if(E.items.length>=300)break;if(b.length)E.items.push(b.shift());}
+const buckets=catalog.map(c=>{const items=candidates.filter(i=>i.category===c[0]);const models=items.filter((_,i)=>i%c[4].length===0),versions=items.filter((_,i)=>i%c[4].length!==0);if(c[0]==='Automóviles'){const flagship=models.pop();models.splice(2,0,flagship);}return models.concat(versions);});while(E.items.length<300&&buckets.some(b=>b.length))for(const b of buckets){if(E.items.length>=300)break;if(b.length)E.items.push(b.shift());}
 const oldBuy=E.buy;
-E.buy=function(s,id){const item=E.items.find(i=>i.id===id),r=oldBuy(s,id);if(r?.ok&&item?.category){const c=E.initWorld(s);c.popularity=clamp(c.popularity+item.pop,0,100);c.coachTrust=clamp(c.coachTrust+item.confidence,0,100);s.fans=(s.fans||0)+item.pop*120;if(c.lastPurchase)c.lastPurchase.popularity=item.pop;}return r;};
-function shop(s){const x=core(s),cat=x.shopCat||'Todos',c=wallet(s),all=E.items.filter(i=>cat==='Todos'||(i.category||'Originales')===cat),page=clamp(x.shopPage||0,0,Math.max(0,Math.ceil(all.length/24)-1));return '<div class="wh13-options">'+['Todos','Originales',...catalog.map(c=>c[0])].map(n=>btn(esc(n),'shop-cat','data-id="'+esc(n)+'"',cat===n?'primary':'ghost')).join('')+'</div><p>'+all.length+' artículos · página '+(page+1)+' / '+Math.max(1,Math.ceil(all.length/24))+'</p><div class="life-shop-grid">'+all.slice(page*24,page*24+24).map(i=>'<article class="life-item"><div class="wh13-product">'+(i.icon||'★')+'</div><h3>'+esc(i.name)+'</h3><p>'+esc(i.desc)+'</p><strong>'+money(i.price)+'</strong><p>'+(c.owned.includes(i.id)?'Adquirido':V.available(s,i)?'<button class="btn primary" data-action="buy-life" data-id="'+esc(i.id)+'">Comprar</button>':'Bloqueado · saldo o progreso insuficiente')+'</p></article>').join('')+'</div>'+btn('Anterior','shop-page','data-id="-1" '+(page===0?'disabled':''))+btn('Siguiente','shop-page','data-id="1" '+(page>=Math.ceil(all.length/24)-1?'disabled':''));}
-function lifestyleEvent(s,news){const c=E.initWorld(s),x=core(s),owned=E.items.filter(i=>i.category&&c.owned.includes(i.id));if(!owned.length||Math.random()>.13)return;const item=owned[rand(0,owned.length-1)],cat=item.category;let text='',delta=0;
- if(['Automóviles','Motocicletas'].includes(cat)&&Math.random()<item.risk*.035){const days=rand(1,4);s.player.injury=Math.max(s.player.injury||0,days);text='Accidente con '+item.name+' · recuperación de '+days+' partidos.';}
- else if(cat==='Negocios'){delta=rand(0,1)?Math.round(item.price*.025):-Math.round(item.price*.035);text=delta>0?'Beneficios de '+item.name:'Pérdidas de '+item.name;}
- else if(cat==='Salud'||cat==='Personal'||cat==='Entrenamiento'){s.player.energy=clamp(s.player.energy+rand(3,8),0,100);delta=-Math.round(item.price*.01);text='Servicio y recuperación: '+item.name;}
- else if(cat==='Viajes'||cat==='Entretenimiento'){s.player.energy=clamp(s.player.energy+rand(-9,8),0,100);text='Actividad fuera de cancha: '+item.name;}
- else {delta=-Math.round(item.price*.008);text='Mantenimiento, seguro o reparación: '+item.name;}
- delta=Math.max(-c.cash,delta);c.cash=round(c.cash+delta);x.events.unshift({text,delta,season:s.season,week:s.world.week});x.events=x.events.slice(0,40);news('Estilo de vida',text+(delta?' · '+money(delta):''),'activity');
+E.buy=function(s,id){const item=E.items.find(i=>i.id===id),r=oldBuy(s,id);if(r?.ok&&item?.category){const c=E.initWorld(s);c.popularity=clamp(c.popularity+item.pop,0,100);c.coachTrust=clamp(c.coachTrust+item.confidence,0,100);core(s).personalConfidence=clamp((core(s).personalConfidence??50)+item.confidence,0,100);s.fans=(s.fans||0)+item.pop*120;if(c.lastPurchase)c.lastPurchase.popularity=item.pop;}return r;};
+const categoryArt={'Automóviles':'sports_car','Motocicletas':'sports_car','Propiedades':'penthouse','Ropa y calzado':'shoes','Joyas y relojes':'image_agent','Entrenamiento':'gym','Salud':'physio','Tecnología':'streaming_room','Viajes':'family_trip','Negocios':'image_agent','Personal':'trainer','Entretenimiento':'streaming_room'};
+function lifeNotice(s){const x=core(s),e=x.lifePending;if(!e)return '';return panel(esc(e.title),'<p>'+esc(e.text)+'</p>'+e.options.map((o,i)=>btn(esc(o.label)+(o.cash?' · '+money(o.cash):''),'life-answer','data-id="'+i+'" '+(o.cash<0&&wallet(s).cash<Math.abs(o.cash)?'disabled':''),'primary')).join(''));}
+function shop(s){
+ const x=core(s),cat=x.shopCat||'Todos',c=wallet(s),all=E.items.filter(i=>cat==='Todos'||cat==='Mis adquisiciones'&&c.owned.includes(i.id)||(i.category||'Originales')===cat),page=clamp(x.shopPage||0,0,Math.max(0,Math.ceil(all.length/24)-1));
+ return '<div class="wh13-metrics">'+metric('CATÁLOGO',E.items.length)+metric('PATRIMONIO EN COMPRAS',money(E.items.filter(i=>c.owned.includes(i.id)).reduce((a,i)=>a+i.price,0)))+metric('CONFIANZA PERSONAL',x.personalConfidence??50)+'</div>'+lifeNotice(s)+'<div class="wh13-options">'+['Todos','Mis adquisiciones','Originales',...catalog.map(c=>c[0])].map(n=>btn(esc(n),'shop-cat','data-id="'+esc(n)+'"',cat===n?'primary':'ghost')).join('')+'</div><p>'+all.length+' artículos · página '+(page+1)+' / '+Math.max(1,Math.ceil(all.length/24))+'</p><div class="life-shop-grid">'+all.slice(page*24,page*24+24).map(i=>'<article class="life-item">'+(V.art?V.art(i.category?{id:categoryArt[i.category],name:i.name}:i):'<div class="wh13-product">'+(i.icon||'★')+'</div>')+'<h3>'+esc(i.name)+'</h3><p>'+esc(i.desc)+'</p><strong>'+money(i.price)+'</strong><p>'+(c.owned.includes(i.id)?'Adquirido':V.available(s,i)?'<button class="btn primary" data-action="buy-life" data-id="'+esc(i.id)+'">Comprar</button>':'Bloqueado · saldo o progreso insuficiente')+'</p></article>').join('')+'</div>'+btn('Anterior','shop-page','data-id="-1" '+(page===0?'disabled':''))+btn('Siguiente','shop-page','data-id="1" '+(page>=Math.ceil(all.length/24)-1?'disabled':''))+panel('Eventos de estilo de vida',x.events.slice(0,10).map(e=>'<p>'+esc(e.text)+' · '+money(e.delta)+'</p>').join('')||'<p>Tus adquisiciones pueden generar nuevas historias durante la temporada.</p>');
+}
+const option=(label,cash=0,pop=0,energy=0,injury=0,confidence=0)=>({label,cash,pop,energy,injury,confidence});
+function lifestyleEvent(s,news){
+ const c=E.initWorld(s),x=core(s),owned=E.items.filter(i=>i.category&&c.owned.includes(i.id));
+ if(!owned.length||x.lifePending||Math.random()>.16)return;
+ const item=owned[rand(0,owned.length-1)],cat=item.category,fee=Math.max(50,Math.round(item.price*.008)),service=Math.max(100,Math.round(item.price*.015)),income=Math.max(100,Math.round(item.price*.025));
+ let event;
+ if(['Automóviles','Motocicletas'].includes(cat)){
+  if(Math.random()<item.risk*.055){const games=rand(1,4);s.player.injury=Math.max(s.player.injury||0,games);event={title:'Accidente fuera de la cancha',text:'Tu '+item.name+' sufrió un accidente. Recuperación prevista: '+games+' partido(s).',options:[option('Tratamiento especializado',-service,0,5,-1,1),option('Recuperación habitual',0,0,3,0,-1)]};}
+  else event={title:'Una visita al taller',text:'Tu '+item.name+' necesita mantenimiento antes de volver a circular.',options:[option('Mantenimiento completo',-fee,0,1,0,2),option('Dejarlo guardado',0,-1,0,0,-1),option('Participar en una exhibición',income,2,-5,0,1)]};
+ }else if(cat==='Negocios'){
+  const good=Math.random()<.55;
+  event=good?{title:'Oportunidad comercial',text:item.name+' tiene una propuesta de expansión.',options:[option('Reinvertir en el negocio',-service,2,-2,0,2),option('Retirar beneficios',income,0,0,0,1),option('Delegar la gestión',Math.round(income*.5),1,3)]}:{title:'Problemas de liquidez',text:item.name+' necesita ayuda para cubrir sus gastos.',options:[option('Cubrir los gastos',-service,1,-1),option('Reducir operaciones',0,-2,2,0,-2)]};
+ }else if(cat==='Propiedades'){
+  event={title:'Tu propiedad requiere atención',text:item.name+' tiene una factura imprevista de mantenimiento.',options:[option('Reparación completa',-service,1,4,0,2),option('Reparación básica',-fee,0,1),option('Posponer obras',0,-2,-5,0,-2)]};
+ }else if(cat==='Joyas y relojes'||cat==='Ropa y calzado'){
+  event=Math.random()<.25?{title:'Incidente con una adquisición',text:'Se perdió un accesorio de '+item.name+' durante un viaje.',options:[option('Reponerlo y mejorar la seguridad',-service,0,0,0,1),option('Asumir la pérdida',0,-1,-2,0,-2)]}:{title:'Invitación de moda',text:'Una marca quiere que luzcas '+item.name+' en un evento público.',options:[option('Participar en la campaña',income,4,-7,0,2),option('Sesión breve de fotos',Math.round(income*.3),2,-2),option('Rechazar y descansar',0,0,5)]};
+ }else if(cat==='Entrenamiento'||cat==='Salud'||cat==='Personal'){
+  event={title:'Tu equipo personal propone un cambio',text:item.name+' puede ayudarte a mejorar la recuperación, pero exige recursos y tiempo.',options:[option('Programa intensivo',-service,1,10,-1,2),option('Programa habitual',-fee,0,5,0,1),option('Descanso sin coste',0,0,3)]};
+ }else if(cat==='Viajes'||cat==='Entretenimiento'){
+  event={title:'Planes fuera de la cancha',text:'Te han invitado a una actividad relacionada con '+item.name+'.',options:[option('Asistir toda la noche',-fee,4,-14,0,2),option('Asistir brevemente',-Math.max(1,Math.round(fee*.35)),2,-3),option('Priorizar el descanso',0,0,8)]};
+ }else{
+  event={title:'Propuesta digital',text:'Tu '+item.name+' abre una oportunidad de contenido con tus seguidores.',options:[option('Grabar una colaboración',income,3,-6,0,1),option('Mejorar el equipo',-service,2,2),option('No participar',0,0,4)]};
+ }
+ x.lifePending={...event,asset:item.id,season:s.season,week:s.world.week};news('Nuevo evento de estilo de vida',event.text,'activity');
+}
+function resolveLife(s,i,news){
+ const x=core(s),e=x.lifePending,o=e?.options[i],c=wallet(s);if(!o||o.cash<0&&c.cash<Math.abs(o.cash))return 'Opción no disponible.';
+ c.cash=round(c.cash+o.cash);const w=E.initWorld(s);w.popularity=clamp(w.popularity+o.pop,0,100);s.player.energy=clamp(s.player.energy+o.energy,0,100);s.player.injury=Math.max(0,(s.player.injury||0)+o.injury);x.personalConfidence=clamp((x.personalConfidence??50)+o.confidence,0,100);
+ const text=e.title+' · '+o.label;x.events.unshift({text,delta:o.cash,season:s.season,week:s.world.week});x.events=x.events.slice(0,40);delete x.lifePending;news('Decisión personal',text+(o.cash?' · '+money(o.cash):''),'activity');return text;
 }
 function action(s,act,el,news){
  const x=core(s),id=el.dataset.id;
@@ -173,6 +200,7 @@ function action(s,act,el,news){
  switch(act){case 'select':select(s,id);break;case 'clear':x.slip=[];break;case 'place':return place(s,Number(document.getElementById('wh13-stake')?.value));case 'decision':case 'match-decision':decision(s,id);break;
  case 'casino-tab':x.casinoTab=id;break;case 'roulette':return roulette(s,id);case 'baccarat':return baccarat(s,id);
  case 'start-case':if(x.case&&!x.case.started)x.case.started=true;break;case 'answer':answer(s,+id,news);break;
+ case 'life-answer':return resolveLife(s,Number(id),news);
  case 'shop-cat':x.shopCat=id;x.shopPage=0;break;case 'shop-page':x.shopPage=Math.max(0,(x.shopPage||0)+Number(id));break;
  default:if(act.startsWith('bj-'))return blackjack(s,act.slice(3));
  }
