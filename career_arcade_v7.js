@@ -23,10 +23,10 @@ function setup(g){
  if(g.mode==='shooting')g.target=choice(g,3);
 }
 function count(g){return g.mode==='timing'?3:g.mode==='pickroll'?5:7;}
-function limit(g){return g.mode==='timing'?4500:g.mode==='passing'?Math.max(850,1750-g.round*130):g.mode==='defense'?Math.max(700,1350-g.round*100):g.mode==='steal'?Math.max(650,1300-g.round*105):g.mode==='rebound'?Math.max(750,1550-g.round*120):g.mode==='pickroll'?2700:15000;}
-function timing(g){const half=[850,570,370][Math.min(g.round,2)],q=((g.clock()-g.roundStarted)%(half*2))/half;return q<=1?q:2-q;}
+function limit(g){return g.mode==='timing'?4500:g.mode==='passing'?Math.max(650,1450-g.round*135):g.mode==='defense'?Math.max(550,1050-g.round*85):g.mode==='steal'?Math.max(525,1050-g.round*90):g.mode==='rebound'?Math.max(650,1300-g.round*105):g.mode==='pickroll'?2100:15000;}
+function timing(g){const half=[740,470,300][Math.min(g.round,2)],q=((g.clock()-g.roundStarted)%(half*2))/half;return q<=1?q:2-q;}
 function score(g){const max=g.mode==='shooting'?34:count(g);return clamp(g.mode==='shooting'?g.points/max:g.hits/max,0,1);}
-function result(g){return {mode:g.mode,stat:modes[g.mode].stat,accuracy:score(g),hits:g.hits,points:g.points,attempts:g.attempts,success:g.mode==='timing'?g.hits===3:g.mode==='shooting'?g.points>=30:g.hits>=count(g)-1};}
+function result(g){return {mode:g.mode,stat:modes[g.mode].stat,accuracy:score(g),hits:g.hits,points:g.points,attempts:g.attempts,success:g.mode==='timing'?g.hits===3:g.mode==='shooting'?g.points>=34:g.hits>=count(g)-1};}
 function step(g,index,timeout=false){
  if(g.done||g.locked)return null;
  const elapsed=g.clock()-g.roundStarted;
@@ -34,15 +34,15 @@ function step(g,index,timeout=false){
   if(g.clock()-g.started>=15000){g.done=true;return result(g);}
   if(timeout){setup(g);return null;}
   if(elapsed<240)return null;
-  const good=index===g.target&&elapsed<950;g.attempts++;g.hits+=good?1:0;g.points=Math.max(0,g.points+(good?(index===1?3:2):-2));g.history.push(good);setup(g);return null;
+  const good=index===g.target&&elapsed<780;g.attempts++;g.hits+=good?1:0;g.points=Math.max(0,g.points+(good?(index===1?3:2):-2));g.history.push(good);setup(g);return null;
  }
  if(elapsed>=limit(g))timeout=true;
  let good=false;
  if(!timeout){
-  if(g.mode==='timing'){const tolerance=[.15,.095,.065][g.round]+(g.skill-50)*.0008;good=Math.abs(timing(g)-.5)<=tolerance;}
+  if(g.mode==='timing'){const tolerance=[.115,.075,.047][g.round]+(g.skill-50)*.0008;good=Math.abs(timing(g)-.5)<=tolerance;}
   else good=index===g.target&&elapsed>=120;
  }
- g.attempts++;g.hits+=good?1:0;g.points+=good?2:0;g.history.push(good);g.round++;
+ g.attempts++;g.hits=Math.max(0,g.hits+(good?1:-1));g.points=Math.max(0,g.points+(good?2:-1));g.history.push(good);g.round++;
  if(g.round>=count(g)){g.done=true;return result(g);}
  setup(g);return null;
 }
@@ -55,9 +55,9 @@ function markup(g){
  const m=modes[g.mode],left=g.mode==='shooting'?Math.ceil(Math.max(0,15000-(g.clock()-g.started))/1000):Math.ceil(Math.max(0,limit(g)-(g.clock()-g.roundStarted))/1000);
  const dots=g.history.slice(-12).map(x=>'<i class="'+(x?'ok':'bad')+'">'+(x?'✓':'×')+'</i>').join('');
  let field='';
- if(g.mode==='timing'){const width=2*([.15,.095,.065][g.round]+(g.skill-50)*.0008)*100;field='<div class="v7-hoop">🏀<span>CANASTA</span></div><div class="v7-track"><i style="width:'+width+'%;left:'+(50-width/2)+'%"></i><b id="v7-needle"></b></div>'+button(0,'LANZAR','v7-launch');}
- if(g.mode==='passing'){field='<div class="v7-court"><div class="v7-passer">🏀 Tú</div><div class="v7-formation">'+Array.from({length:4},(_,i)=>button(i,player(g.names[i]||'Compañero '+(i+1),i===g.target?'open':''),i===g.target?'open':'guarded')).join('')+'</div></div><p>Necesitas 6 de 7 pases correctos. El tiempo se reduce en cada ronda.</p>';}
- if(g.mode==='shooting'){field='<div class="v7-court v7-shooting">'+[0,1,2].map(i=>button(i,'<span class="v7-basket">▱</span><span>'+(i===1?'3 PTS':'2 PTS')+'</span>',i===g.target?'open':'guarded')).join('')+'</div><p>Necesitas 30 puntos. Los fallos restan 2; el aro cambia cada 0,95 s.</p>';}
+ if(g.mode==='timing'){const width=2*([.115,.075,.047][g.round]+(g.skill-50)*.0008)*100;field='<div class="v7-hoop">🏀<span>CANASTA</span></div><div class="v7-track"><i style="width:'+width+'%;left:'+(50-width/2)+'%"></i><b id="v7-needle"></b></div>'+button(0,'LANZAR','v7-launch');}
+ if(g.mode==='passing'){field='<div class="v7-court"><div class="v7-passer">🏀 Tú</div><div class="v7-formation">'+Array.from({length:4},(_,i)=>button(i,player(g.names[i]||'Compañero '+(i+1),i===g.target?'open':''),i===g.target?'open':'guarded')).join('')+'</div></div><p>Necesitas 6 de 7 puntos netos; cada fallo resta uno. El tiempo se reduce en cada ronda.</p>';}
+ if(g.mode==='shooting'){field='<div class="v7-court v7-shooting">'+[0,1,2].map(i=>button(i,'<span class="v7-basket">▱</span><span>'+(i===1?'3 PTS':'2 PTS')+'</span>',i===g.target?'open':'guarded')).join('')+'</div><p>Necesitas 34 puntos. Los fallos restan 2; el aro cambia cada 0,78 s.</p>';}
  if(g.mode==='defense'){field='<div class="v7-court v7-lanes"><div class="v7-attacker" style="--lean:'+(g.target-1)*18+'deg">'+player('Rival')+'<span>🏀</span></div><strong>'+defensive[g.target]+'</strong><div class="v7-lane-buttons">'+directions.map((s,i)=>button(i,s)).join('')+'</div></div><p>Cierra la dirección que indica el hombro antes de que arranque.</p>';}
  if(g.mode==='steal'){field='<div class="v7-court v7-lanes"><div class="v7-attacker">'+player('Pasador')+' 🏀</div><div class="v7-pass-line" style="--lane:'+(g.target-1)*32+'deg"></div><strong>Pase hacia '+['la izquierda','el centro','la derecha'][g.target]+'</strong><div class="v7-lane-buttons">'+directions.map((s,i)=>button(i,s)).join('')+'</div></div>';}
  if(g.mode==='pickroll'){field='<div class="v7-court v7-play"><span>🏀</span><span>▰ Bloqueador</span><span>● Defensa</span><strong>'+covers[g.target]+'</strong></div>'+['Pase al bloqueador','Pase al tirador','Penetrar'].map((x,i)=>button(i,x)).join('');}
@@ -73,7 +73,7 @@ function tick(){
  const clock=root.querySelector('#v7-clock');if(clock)clock.textContent=Math.ceil(Math.max(0,remaining)/1000)+' s';
  const needle=root.querySelector('#v7-needle');if(needle)needle.style.left=(timing(g)*100)+'%';
  if(g.mode==='shooting'&&remaining<=0){g.done=true;finish(g,result(g));return;}
- if(g.mode==='shooting'&&elapsed>=950){setup(g);draw();return;}
+ if(g.mode==='shooting'&&elapsed>=780){setup(g);draw();return;}
  if(g.mode!=='shooting'&&remaining<=0){const r=step(g,-1,true);if(r)finish(g,r);else draw();}
 }
 function start(mode,skill,names,cb){stop();game=make(mode,skill,names,cb);setup(game);draw();timer=setInterval(tick,35);}
