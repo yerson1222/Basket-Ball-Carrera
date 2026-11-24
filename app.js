@@ -8,7 +8,7 @@ const WORLD_UI=window.WH_UI;
 const ORIGIN=window.WH_ORIGIN;
 const STORIES=window.WH_STORIES;
 const RESOURCES=window.WH_RESOURCES;
- const V6=window.WH_V6;
+ const V6=window.WH_V6,V7=window.WH_V7;
  let v6Metric='ppg',v6Started=0;
 let originDraft=null;
 const KEY='worldhoops_save_v1';
@@ -238,9 +238,9 @@ function navItem(tab,label,sym){return `<button class="nav-item ${ui.tab===tab?'
 function shell(){const t=currentTeam(),l=league(save.leagueId);return `<div class="app-shell wh-animate ${ui.menu?'menu-open':''}"><div class="mobile-scrim" data-action="toggle-menu"></div><aside class="sidebar">
   <div class="brand"><span class="brand-ball">◉</span><span>WORLD<span class="brand-light">HOOPS</span><small>CAREER UNIVERSE</small></span></div>
   <div class="side-label">MENÚ PRINCIPAL</div><nav class="side-nav" aria-label="Menú principal">${navItem('home','Mi carrera','home')}${navItem('match','Partidos','court')}${navItem('leagues','Ligas del mundo','globe')}${navItem('market','Mercado','transfer')}${navItem('stats','Mi jugador','chart')}${navItem('life','Mi estilo de vida','spark')}${navItem('international','Internacional','globe')}${navItem('team','Mi equipo','court')}${navItem('leaders','Estadísticas de liga','chart')}${navItem('legacy','Mi legado','trophy')}</nav>
-  <div class="sidebar-bottom"><div class="sidebar-profile"><span class="mini-avatar">${esc(avatar(save.player.name))}</span><span class="side-person"><b>${esc(save.player.name)}</b><small>${esc(save.player.position)} · ${esc(l.flag)} ${esc(l.name)}</small></span><span class="online-dot"></span></div><div class="side-foot">VERSIÓN 6.0 · GUARDADO LOCAL ${ico('disk',14)}</div></div>
+  <div class="sidebar-bottom"><div class="sidebar-profile"><span class="mini-avatar">${esc(avatar(save.player.name))}</span><span class="side-person"><b>${esc(save.player.name)}</b><small>${esc(save.player.position)} · ${esc(l.flag)} ${esc(l.name)}</small></span><span class="online-dot"></span></div><div class="side-foot">VERSIÓN 7.0 · GUARDADO LOCAL ${ico('disk',14)}</div></div>
   </aside><main class="main"><div class="topbar"><div class="topbar-left"><button class="icon-btn mobile-menu" data-action="toggle-menu" aria-label="Abrir menú">${ico('menu',22)}</button><span class="crumb">WORLD HOOPS <span>/</span> ${esc(({home:'MI CARRERA',match:'PARTIDOS',leagues:'LIGAS',market:'MERCADO',stats:'JUGADOR',life:'ESTILO DE VIDA',legacy:'LEGADO',international:'INTERNACIONAL',team:'MI EQUIPO',leaders:'ESTADÍSTICAS DE LIGA'})[ui.tab])}</span></div><div class="topbar-right"><span class="time-tag">${ico('calendar',15)} ${save.year}</span><div class="top-profile">${teamLogo(t,'sm')}<span>${esc(t.name)}</span></div></div></div><div class="page-content">${renderPage()}</div><footer class="footer">WORLD HOOPS <span>·</span> Tu carrera. Tu legado.</footer></main></div>`;}
-function renderPage(){const pages={home:renderHome,match:renderMatches,leagues:renderLeagues,market:renderMarket,stats:renderStats,life:renderLife,legacy:renderLegacy,international:()=>pageTitle('Internacional','Compite por tu selección, tu club y el All-Star.')+V6.cupPanel(save),team:()=>pageTitle('Mi equipo','Construye tu relación con el vestuario.')+V6.teamPanel(save),leaders:()=>pageTitle('Estadísticas de liga','Compara tu rendimiento con todos los jugadores simulados.')+V6.board(save,v6Metric)};return (pages[ui.tab]||pages.home)();}
+function renderPage(){const pages={home:renderHome,match:renderMatches,leagues:renderLeagues,market:renderMarket,stats:renderStats,life:renderLife,legacy:renderLegacy,international:()=>pageTitle('Internacional','Compite por tu selección, tu club y el All-Star.')+V6.cupPanel(save),team:()=>pageTitle('Mi equipo','Construye tu relación con el vestuario.')+V7.teamPanel(save),leaders:()=>pageTitle('Estadísticas de liga','Compara tu rendimiento con todos los jugadores simulados.')+V6.board(save,v6Metric)};return (pages[ui.tab]||pages.home)();}
 function nextFixture(){const w=save.world;if(w.phase!=='regular')return null;const match=w.rounds[w.week].find(m=>m.home===save.teamId||m.away===save.teamId);return match?{...match,opponent:match.home===save.teamId?match.away:match.home}:null;}
 function plotGames(games){const data=games.filter(g=>!g.dnp).slice(-9);if(!data.length)return `<div class="empty-chart">Tus primeros puntos están por llegar.</div>`;const max=Math.max(30,...data.map(x=>x.pts));return `<div class="chart-bars">${data.map((g,i)=>`<div class="bar-column" title="${g.pts} puntos · partido ${i+1}"><div class="bar-value">${g.pts}</div><div class="bar-track"><div class="bar-fill" style="height:${Math.max(6,(g.pts/max*100))}%;--delay:${i*50}ms"></div></div><small>${g.stage==='regular'?'J'+g.week:g.stage==='final'?'F':'SF'}</small></div>`).join('')}</div>`;}
 function newsItems(max=4){return (save.news||[]).slice(0,max).map(n=>`<div class="news-item"><div class="news-icon">${ico(n.type,18)}</div><div><strong>${esc(n.title)}</strong><p>${esc(n.description)}</p><small>TEMP. ${n.season} · JORNADA ${n.week}</small></div></div>`).join('');}
@@ -284,22 +284,12 @@ function lastResult(){const r=save.world.lastMatch;if(!r)return `<div class="emp
 function renderBracket(){const w=save.world,p=w.playoffs;if(!p){return `<div class="bracket-placeholder"><div class="bracket-dots"><i></i><i></i><i></i><i></i></div><h3>Los 4 mejores avanzan</h3><p>El cuadro se definirá al finalizar la fase regular.</p></div>`;}
  const semi1=p.semis[0],semi2=p.semis[1],final=p.final;function oneMatch(a,b,r){return `<div class="bracket-match"><div class="bracket-name">${teamLogo(club(a),'tiny')}<span>${esc(club(a)?.city)}</span>${r?`<b>${r.home===a?r.hs:r.as}</b>`:''}</div><div class="bracket-name">${teamLogo(club(b),'tiny')}<span>${esc(club(b)?.city)}</span>${r?`<b>${r.home===b?r.hs:r.as}</b>`:''}</div></div>`;}
  return `<div class="bracket"><div><small>SEMIFINALES</small>${oneMatch(p.seed[0],p.seed[3],semi1)}${oneMatch(p.seed[1],p.seed[2],semi2)}</div><div><small>GRAN FINAL</small>${final?oneMatch(final.home,final.away,final):p.semis.length?oneMatch(p.semis[0].winner,p.semis[1].winner,null):'<div class="bracket-empty">POR DEFINIR</div>'}${w.champion?`<div class="winner-title">${ico('trophy',17)} ${esc(shortName(w.champion))}</div>`:''}</div></div>`;}
-function refreshVisibleLeagueData(){
- if(!save||ui.tab!=='leagues')return;
- const lid=ui.browseLeague;
- const coverage=RESOURCES.coverage(lid);
- if(!coverage.teams)return;
- if(coverage.logos===coverage.teams&&coverage.players===coverage.teams)return;
- if(RESOURCES.progress[lid]?.running||RESOURCES.progress[lid]?.finished)return;
- RESOURCES.hydrateLeague(lid).catch(()=>{});
-}
+function refreshVisibleLeagueData(){ /* Resources are bundled at release; no in-game lookup. */ }
 function renderLeagues(){const selected=league(ui.browseLeague)||league(save.leagueId),active=selected.id===save.leagueId,clubs=clubList(selected.id),members=DATA.leagues.filter(l=>l.continent===ui.browseContinent);return `${pageTitle('Ligas del mundo','Descubre campeonatos, compara niveles y planifica tu próximo salto.')}
  <div class="world-banner"><div class="world-emblem">${ico('globe',40)}</div><div><div class="eyebrow">TU MUNDO. SIN FRONTERAS.</div><h2>${DATA.leagues.length} ligas · ${DATA.continents.length} continentes · ${DATA.leagues.reduce((n,l)=>n+clubList(l.id).length,0)} clubes</h2><p>Explora nuevas ligas, descubre clubes y lleva tu carrera a lo más alto.</p></div></div>
  <div class="continent-tabs">${DATA.continents.map(c=>`<button class="continent-tab ${c.id===ui.browseContinent?'active':''}" data-action="continent" data-continent="${c.id}"><span class="continent-icon" style="--region:${c.accent}">${c.symbol}</span><b>${c.name}</b><small>${DATA.leagues.filter(l=>l.continent===c.id).length} ligas</small></button>`).join('')}</div>
  <div class="columns columns-leagues"><section class="panel league-selector"><div class="section-head"><div><div class="eyebrow">EXPLORAR REGIÓN</div><h2>${esc(continent(ui.browseContinent).name)}</h2></div></div><div class="league-options">${members.map(l=>`<button class="league-option ${l.id===ui.browseLeague?'selected':''}" data-action="choose-league" data-league="${l.id}"><span class="flag">${leagueBadge(l)}</span><span><b>${esc(l.name)}</b><small>${esc(l.country)}</small></span><span class="league-rating">${l.quality} <small>NVL</small></span>${ico('chevron',17)}</button>`).join('')}</div></section>
- <div class="col-stack"><section class="panel league-detail"><div class="league-info-top"><span class="flag flag-large">${leagueBadge(selected,'lg')}</span><div><div class="eyebrow">${esc(continent(selected.continent).name).toUpperCase()} · ${esc(selected.country)}</div><h2>${esc(selected.name)}</h2>${selected.id==='bsn'&&selected.federationLogo?`<img class="puerto-rico-federation-badge" src="${esc(selected.federationLogo)}" alt="Federación de Baloncesto de Puerto Rico" loading="lazy">`:''}<p>${clubs.length} equipos · ${selected.seasonFormat?.games??14} partidos · playoffs TOP 4${logoCoverage(selected)?` · ${logoCoverage(selected)}`:''}</p></div>${active?statusPill('TU LIGA','lime'):statusPill('EXPLORAR')}</div><div class="wh-resource-toolbar"><div><strong>Escudos y jugadores de la liga</strong><small>Plantillas de referencia y escudos encontrados para cada club</small></div><button class="btn outline small" type="button" data-action="load-rosters" data-league="${esc(selected.id)}" ${RESOURCES.progress[selected.id]?.running?'disabled':''}>${RESOURCES.progress[selected.id]?.running?'Buscando...':'Buscar jugadores y escudos'}</button></div>
- ${RESOURCES.progress[selected.id]?'<div class="wh-resource-status">Clubes consultados: '+RESOURCES.progress[selected.id].checked+' / '+RESOURCES.progress[selected.id].total+' · Plantillas encontradas: '+RESOURCES.progress[selected.id].foundPlayers+' · Escudos: '+RESOURCES.progress[selected.id].foundBadges+'</div>':''}
- <div class="league-metrics"><div><small>NIVEL COMPETITIVO</small><strong>${selected.quality}<em>/100</em></strong></div><div><small>SALARIO BASE ESTIMADO</small><strong>${money(selected.money)}</strong></div><div><small>CONTINENTE</small><strong>${esc(continent(selected.continent).name)}</strong></div></div><div class="level-gauge"><div style="width:${selected.quality}%"></div></div></section>
+ <div class="col-stack"><section class="panel league-detail"><div class="league-info-top"><span class="flag flag-large">${leagueBadge(selected,'lg')}</span><div><div class="eyebrow">${esc(continent(selected.continent).name).toUpperCase()} · ${esc(selected.country)}</div><h2>${esc(selected.name)}</h2>${selected.id==='bsn'&&selected.federationLogo?`<img class="puerto-rico-federation-badge" src="${esc(selected.federationLogo)}" alt="Federación de Baloncesto de Puerto Rico" loading="lazy">`:''}<p>${clubs.length} equipos · ${selected.seasonFormat?.games??14} partidos · playoffs TOP 4${logoCoverage(selected)?` · ${logoCoverage(selected)}`:''}</p></div>${active?statusPill('TU LIGA','lime'):statusPill('EXPLORAR')}</div><div class="league-metrics"><div><small>NIVEL COMPETITIVO</small><strong>${selected.quality}<em>/100</em></strong></div><div><small>SALARIO BASE ESTIMADO</small><strong>${money(selected.money)}</strong></div><div><small>CONTINENTE</small><strong>${esc(continent(selected.continent).name)}</strong></div></div><div class="level-gauge"><div style="width:${selected.quality}%"></div></div></section>
  <section class="panel"><div class="section-head"><div><div class="eyebrow">${active?'CLASIFICACIÓN REAL DE TU PARTIDA':'EQUIPOS DISPONIBLES'}</div><h2>${active?'Tabla de posiciones':'Clubes de la liga'}</h2></div></div>${active?`<div class="standings detailed"><div class="stand-head"><span>POS · EQUIPO</span><span>PJ</span><span>V</span><span>D</span><span>DIF</span></div>${tableRows().map((r,i)=>`<div class="stand-row ${r.id===save.teamId?'mine':''}"><span><small>${i+1}</small>${teamLogo(r.team,'tiny')}<b>${esc(r.team.name)}</b></span><span>${r.w+r.l}</span><span>${r.w}</span><span>${r.l}</span><span>${r.pf-r.pa>=0?'+':''}${r.pf-r.pa}</span></div>`).join('')}</div>`:`<div class="club-directory">${clubs.map(t=>`<div class="club-directory-row">${teamLogo(t,'sm')}<div><b>${esc(t.name)}</b><small>${esc(CAREER.playerNames(t).length?CAREER.playerNames(t).slice(0,4).join(' · '):t.affiliate?'Filial de '+shortName(t.affiliate):t.city)}</small></div><span>NVL ${t.rating}</span></div>`).join('')}</div>`}</section></div></div>`;}
 function offerCard(offer){const l=league(offer.leagueId),t=club(offer.teamId),increase=(offer.salary/save.salary-1)*100;return `<article class="offer-card"><div class="offer-top"><span class="offer-region">${l.flag} ${esc(l.country)} · ${esc(continent(l.continent).name)}</span>${statusPill(offer.role,'lime')}</div><div class="offer-team">${teamLogo(t,'lg')}<div><h3>${esc(t.name)}</h3><p>${esc(l.name)}</p></div></div><div class="offer-terms"><div><small>SALARIO ANUAL</small><strong>${money(offer.salary)}</strong><span class="growth ${increase<0?'down':''}">${increase>=0?'+':''}${Math.round(increase)}% vs. actual</span></div><div><small>DURACIÓN</small><strong>${offer.years} ${offer.years===1?'año':'años'}</strong></div></div>${actionButton('Firmar contrato '+ico('arrow',17),'sign','primary offer-sign',`data-offer="${offer.id}"`)}</article>`;}
 function renderMarket(){const p=save.player,l=league(save.leagueId),offseason=save.world.phase==='offseason';return `${pageTitle('Mercado de fichajes','Los grandes cambios empiezan con una decisión.')}
@@ -390,18 +380,9 @@ function createModal(mode='random'){
 }
 function combineModal(){
  if(!originDraft)return '';
- const test=ORIGIN.activeTest(originDraft),idx=originDraft.index;
- if(!test)return '';
- originDraft.stepStarted=Date.now();
- return '<div class="modal-backdrop wh-combine-backdrop"><div class="modal-card wh-combine-modal" role="dialog" aria-modal="true" aria-label="Minijuego del draft">'+
- '<div class="decision-eyebrow">COMBINE · '+(idx+1)+' / '+ORIGIN.tests.length+'</div>'+
- '<div class="wh-combine-progress"><span style="width:'+((idx)/ORIGIN.tests.length*100)+'%"></span></div>'+
- '<h2>'+esc(test.title)+'</h2><p>'+esc(test.text)+'</p>'+
- '<div class="v6-court" aria-hidden="true"><span class="v6-ball"></span><span class="v6-hoop"></span></div><div class="wh-timing-zone"><div class="wh-timing-label"><strong>PUNTERÍA</strong><span>Elige cuando la barra pase por el centro</span></div>'+
- '<div class="wh-timing-track"><div class="wh-timing-green"></div><div class="wh-timing-needle"></div></div></div>'+
- '<div class="wh-combine-choices">'+test.choices.map((o,i)=>'<button type="button" class="wh-combine-option" data-action="combine-choice" data-choice="'+i+'"><strong>'+esc(o.label)+'</strong><small>'+esc(({shooting:'TIRO',playmaking:'PASES',defense:'DEFENSA',athleticism:'FÍSICO'})[o.stat])+' · '+Math.round(ORIGIN.probability(originDraft,o)*100)+'% base</small></button>').join('')+'</div>'+
- '<div class="wh-combine-score">PUNTOS DE EVALUACIÓN <strong>'+originDraft.score+' / 120</strong></div>'+
- '<button type="button" class="btn ghost" data-action="origin-back">Abandonar combine</button></div></div>';
+ const test=ORIGIN.activeTest(originDraft),idx=originDraft.index;if(!test)return '';
+ const mode=V7.combineModes[idx]||'timing',m=V7.modes[mode];
+ return '<div class="modal-backdrop"><div class="modal-card v7-arcade" role="dialog" aria-modal="true"><div class="v6-kicker">COMBINE · '+(idx+1)+' / '+ORIGIN.tests.length+'</div><h2>'+m.icon+' '+esc(m.title)+'</h2><p>'+esc(m.description)+'</p><p>Puntos de evaluación: '+originDraft.score+' / 120</p><button class="btn primary" data-action="combine-choice" data-choice="0">Empezar prueba</button><button class="btn ghost" data-action="origin-back">Abandonar combine</button></div></div>';
 }
 function combineResultModal(out){
  const done=originDraft.index>=ORIGIN.tests.length;
@@ -541,27 +522,18 @@ function chooseMatchDecision(index){
  completeDecisionMatch(phase,impact);
 }
 function clutchModal(){
- const pending=STORIES.core(save).clutchPending;if(!pending)return '';pending.startAt=Date.now();
- const choices=pending.options.map((a,i)=>'<button class="wh-clutch-choice" type="button" data-action="clutch-choice" data-choice="'+i+'">'+
- '<strong>'+esc(a.label)+'</strong><small>'+esc(skillName(a.stat))+' '+save.player.skills[a.stat]+'</small></button>').join('');
- return '<div class="modal-backdrop wh-clutch-backdrop"><div class="modal-card wh-clutch-modal" role="dialog" aria-modal="true" aria-label="Posesión decisiva">'+
- '<div class="wh-clutch-kicker">ÚLTIMA POSESIÓN · '+(pending.phase==='playoffs'?'PLAYOFFS':'PARTIDO IGUALADO')+'</div>'+
- '<div class="wh-clutch-score">¡EL PARTIDO SE DECIDE AHORA!</div>'+
- '<p>Contra '+esc(pending.opponent)+'. Escoge una jugada mientras el indicador pasa por la zona verde del centro. Tu estadística y tu precisión decidirán el desenlace.</p>'+
- '<div class="v6-court" aria-hidden="true"><span class="v6-ball"></span><span class="v6-hoop"></span></div><div class="wh-clutch-timing"><span class="wh-clutch-target"></span><span class="wh-clutch-cursor"></span></div>'+
- '<div class="wh-clutch-actions">'+choices+'</div>'+
- '<small class="wh-clutch-tip">El tiro, el pase o la defensa pueden cambiar varios puntos del marcador. Fallar también tiene consecuencias.</small>'+
- '</div></div>';
+ const p=STORIES.core(save).clutchPending;if(!p)return '';
+ return '<div class="modal-backdrop"><div class="modal-card v7-arcade" role="dialog" aria-modal="true"><div class="v6-kicker">🔥 ÚLTIMA POSESIÓN</div><h2>¡Todo se decide ahora!</h2><p>Contra '+esc(p.opponent)+'. Elige tu jugada y supera el minijuego.</p>'+p.options.map((o,i)=>{const mode=V7.chooseMode(o.stat,save.world.week+i),m=V7.modes[mode];return '<button class="v7-activity" data-action="clutch-choice" data-choice="'+i+'"><strong>'+m.icon+' '+esc(o.label)+'</strong><span>'+esc(m.title)+'</span><small>'+esc(skillName(o.stat))+' '+save.player.skills[o.stat]+'</small></button>';}).join('')+'</div></div>';
 }
 function pickClutch(index){
- const phase=STORIES.core(save).clutchPending?.phase;
- if(!phase)return;
- const result=STORIES.resolveClutch(save,index);
- if(!result)return;
- addNews(result.success?'¡Jugada decisiva!':'Posesión desperdiciada',
-  result.choice+' · precisión '+result.accuracy+'% · '+(result.success?'+'+result.delta:result.delta)+' puntos de impacto','bolt');
- const impact=STORIES.core(save).pendingImpact;
- completeDecisionMatch(phase,impact);
+ const p=STORIES.core(save).clutchPending,phase=p?.phase,o=p?.options?.[index];if(!o)return;
+ const s=save,mode=V7.chooseMode(o.stat,s.world.week+index);
+ V7.start(mode,s.player.skills[o.stat],CAREER.playerNames(currentTeam()),r=>{
+  if(save!==s)return;
+  const result=V7.clutchResult(s,index,r);if(!result)return;
+  addNews(result.success?'¡Jugada decisiva!':'Posesión desperdiciada',result.choice+' · '+V7.modes[r.mode].title+' · '+result.accuracy+'%','bolt');
+  completeDecisionMatch(phase,STORIES.core(s).pendingImpact);
+ });
 }
 function storyModal(){
  const ev=STORIES.prepareStory(save);if(!ev)return '';
@@ -591,9 +563,9 @@ function storyResultModal(result,phase){
 function interviewModal(){
  const interview=STORIES.core(save).interviewPending;if(!interview)return '';
  const opts=interview.opts.map((o,i)=>'<button class="decision-option wh-interview-choice" type="button" data-action="interview-choice" data-choice="'+i+'">'+
- '<span class="decision-num">0'+(i+1)+'</span><strong>'+esc(o.label)+'</strong></button>').join('');
+ '<span class="decision-num">0'+(i+1)+'</span><strong>'+esc(o.label)+V7.riskLabel(o)+'</strong></button>').join('');
  return '<div class="modal-backdrop decision-backdrop"><div class="modal-card decision-dialog wh-interview-modal" role="dialog" aria-modal="true" aria-label="Entrevista post partido">'+
- '<div class="decision-eyebrow">RUEDA DE PRENSA · TUS PALABRAS IMPORTAN</div><h2>'+esc(interview.text)+'</h2>'+
+ '<div class="decision-eyebrow">🎤 RUEDA DE PRENSA · TUS PALABRAS IMPORTAN</div><h2>'+esc(interview.text)+'</h2>'+
  '<p class="decision-help">Tus respuestas moldean tu personalidad: '+esc(V6.personality(V6.core(save)))+'. Afectan a la química, la reputación y las reacciones de prensa futuras.</p>'+
  '<div class="decision-options">'+opts+'</div>'+
  '<button class="btn ghost" data-action="interview-skip" type="button">No dar declaraciones</button></div></div>';
@@ -613,7 +585,7 @@ function purchaseModal(data){
 }
 function interviewResultModal(out){
  return '<div class="modal-backdrop decision-backdrop"><div class="modal-card decision-dialog wh-story-result" role="dialog" aria-modal="true" aria-label="Reacción a tus declaraciones">'+
- '<div class="decision-eyebrow">LOS MEDIOS REACCIONAN</div><h2>Las palabras también cuentan</h2><p>'+esc(out.answer)+'</p>'+
+ '<div class="decision-eyebrow">LOS MEDIOS REACCIONAN</div><h2>Las palabras también cuentan</h2><p>'+esc(out.answer)+'</p>'+(out.risk&&out.risk!=='bajo'?'<p class="v7-risk '+out.risk+'">'+(out.backlash?'⚠ Reacción negativa inmediata.':'Tu respuesta ha generado expectación.')+' Tu rendimiento de los próximos partidos tendrá consecuencias.</p>':'')+
  '<div class="wh-consequence-stats"><span>Popularidad <b>'+(out.pop>=0?'+':'')+out.pop+'</b></span>'+
  '<span>Confianza del entrenador <b>'+(out.trust>=0?'+':'')+out.trust+'</b></span><span>Personalidad <b>'+esc(out.personality||'Equilibrado')+'</b></span><span>Química <b>'+Math.round(out.chemistry||0)+'/100</b></span></div>'+
  '<button class="btn primary" data-action="close-modal" type="button">Continuar la carrera</button></div></div>';
@@ -700,7 +672,7 @@ document.addEventListener('click',e=>{const el=e.target.closest('[data-action]')
  if(act==='start-career'){showModal(originChoiceModal());return;}
  if(act==='origin-back'){originDraft=null;showModal(originChoiceModal());return;}
  if(act==='origin-mode'){showModal(createModal(el.dataset.mode));return;}
- if(act==='combine-choice'){const result=ORIGIN.attempt(originDraft,Number(el.dataset.choice));if(result)showModal(combineResultModal(result));return;}
+ if(act==='combine-choice'){if(!originDraft)return;const d=originDraft,mode=V7.combineModes[d.index],test=ORIGIN.activeTest(d);if(!test)return;V7.start(mode,d.skills[test.stat],[],r=>{if(originDraft!==d)return;const out=V7.combineResult(d,r);if(out)showModal(combineResultModal(out));});return;}
  if(act==='combine-next'){if(!originDraft)return;if(originDraft.index>=ORIGIN.tests.length){ORIGIN.draft(originDraft,DATA.leagues,clubList);showModal(draftOfferModal());}else showModal(combineModal());return;}
  if(act==='accept-draft'){if(originDraft?.offer)createOriginCareer(originDraft.fields,originDraft.offer);return;}
  if(act==='landing-leagues'){showModal(landingLeaguesModal());return;}
@@ -715,20 +687,16 @@ document.addEventListener('click',e=>{const el=e.target.closest('[data-action]')
  if(act==='nav'){ui.tab=el.dataset.tab;ui.menu=false;render();refreshVisibleLeagueData();window.scrollTo(0,0);return;}
  if(!save)return;
  if(act==='v6-sort'){v6Metric=el.dataset.metric;render();return;}
- if(act==='v6-help'){if(V6.help(save,el.dataset.name,el.dataset.kind)){persist();render();toast('¡Compañero apoyado!');}return;}
+ if(act==='v7-team-open'){const html=V7.activityModal(save,el.dataset.name);if(html)showModal(html);return;}
+ if(act==='v7-team-act'){const r=V7.act(save,el.dataset.name,el.dataset.kind);if(r){addNews(r.ok?'Actividad de equipo exitosa':'Actividad de equipo fallida',r.title+' · '+r.name+' · Química '+r.chemistry,r.ok?'spark':'warning');persist();render();showModal(V7.activityResult(r));}return;}
  if(act==='v6-accept'||act==='v6-decline'){if(V6.accept(save,el.dataset.id,act==='v6-accept')){persist();render();}return;}
- if(act==='v6-cup-open'){const html=V6.cupModal(save,el.dataset.id);if(html){showModal(html);v6Started=Date.now();}return;}
- if(act==='v6-cup-play'){if(!v6Started)return;const dt=Math.max(0,Date.now()-v6Started),t=(dt%1800)/900,needle=t<=1?t:2-t;v6Started=0;const match=V6.play(save,el.dataset.id,el.dataset.stat,clamp(1-Math.abs(needle-.5)*2,0,1));if(match){V6.offers(save);persist();render();showModal(V6.resultModal(V6.tournament(save,el.dataset.id),match));}return;}
+ if(act==='v6-cup-open'){const t=V6.tournament(save,el.dataset.id);if(!t||t.status!=='active')return;showModal('<div class="modal-backdrop"><div class="modal-card v7-arcade" role="dialog" aria-modal="true"><h2>🏆 '+esc(t.name)+'</h2><p>Elige cómo disputar la posesión decisiva.</p>'+['shooting','playmaking','defense','athleticism'].map((stat,i)=>{const mode=V7.chooseMode(stat,t.round+i);return '<button class="v7-activity" data-action="v6-cup-play" data-id="'+esc(t.id)+'" data-stat="'+stat+'"><strong>'+V7.modes[mode].icon+' '+V7.modes[mode].title+'</strong><small>'+esc(skillName(stat))+' '+save.player.skills[stat]+'</small></button>';}).join('')+'<button class="btn ghost" data-action="close-modal">Volver</button></div></div>');return;}
+ if(act==='v6-cup-play'){const id=el.dataset.id,stat=el.dataset.stat,t=V6.tournament(save,id),s=save;if(!t||t.status!=='active'||s.player.injury>0||s.player.energy<10)return;const mode=V7.chooseMode(stat,t.round+['shooting','playmaking','defense','athleticism'].indexOf(stat));V7.start(mode,s.player.skills[stat],CAREER.playerNames(currentTeam()),r=>{if(save!==s)return;const match=V6.play(s,id,stat,r.accuracy,r.success);if(match){V6.offers(s);persist();render();showModal(V6.resultModal(t,match));}});return;}
  if(act==='go-market'||act==='go-stats'||act==='go-leagues'||act==='go-match'){ui.tab=act.slice(3)==='market'?'market':act.slice(3)==='stats'?'stats':act.slice(3)==='leagues'?'leagues':'match';render();window.scrollTo(0,0);return;}
  if(act==='sim-one'||act==='sim-three'||act==='sim-all'){runSimulation(act==='sim-one'?1:act==='sim-three'?3:save.world.rounds.length);return;}
  if(act==='sim-playoffs'){requestMatchDecision('playoffs');return;}
  if(act==='continent'){ui.browseContinent=el.dataset.continent;ui.browseLeague=DATA.leagues.find(l=>l.continent===ui.browseContinent)?.id||save.leagueId;render();refreshVisibleLeagueData();return;}
  if(act==='choose-league'){ui.browseLeague=el.dataset.league;render();refreshVisibleLeagueData();return;}
- if(act==='load-rosters'){
-  const lid=el.dataset.league||ui.browseLeague;
-  RESOURCES.hydrateLeague(lid).then(p=>{if(ui.tab==='leagues'){render();toast('Búsqueda terminada: '+p.foundPlayers+' plantillas y '+p.foundBadges+' escudos encontrados.');}}).catch(()=>toast('No se pudo acceder a la base de datos en este momento.'));
-  render();return;
- }
  if(act==='train'){showWeeklyTraining();return;}
  if(act==='training-card'){pickTrainingCard(el.dataset.card);return;}
  if(act==='training-rest'){restTrainingWeek();return;}
@@ -756,7 +724,7 @@ document.addEventListener('click',e=>{const el=e.target.closest('[data-action]')
  if(act==='reset'){if(window.confirm('¿Crear una carrera nueva? Tu partida actual se perderá si no la exportas antes.')){localStorage.removeItem(KEY);save=null;ui.tab='home';render();showModal(originChoiceModal());}return;}
 });
 render();
-V6.loadLogos();
+/* League and club resources are supplied by the release. */
 if(typeof window.addEventListener==='function'){
  window.addEventListener('worldhoops:resources',()=>{if(save&&['leagues','international','team','leaders'].includes(ui.tab))render();});
 }
