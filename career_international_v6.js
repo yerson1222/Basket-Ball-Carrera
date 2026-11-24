@@ -40,7 +40,7 @@ function core(s){
  const v=c.v6;
  if(v.teamKey!==s.teamId){v.players={};v.chemistry=65;v.teamKey=s.teamId;}
  if(v.seasonKey!==s.season){v.seasonKey=s.season;v.helped={};v.birthdayMonth=hash(s.player.name)%12;v.annual=[];}
- let names=E.playerNames(team(s.teamId)).filter(n=>n!==s.player.name).slice(0,18);
+ let names=E.playerNames(team(s.teamId)).filter(n=>n!==s.player.name);
  if(!names.length)names=Array.from({length:8},(_,i)=>'Compañero simulado '+(i+1));
  for(const n of Object.keys(v.players))if(!names.includes(n))delete v.players[n];
  for(const n of names)if(!v.players[n])v.players[n]={morale:60+hash(n)%30,energy:60+hash(n+'e')%35,bond:50};
@@ -149,7 +149,7 @@ function rankings(s){
  function row(id,name,synthetic){const key=id+'|'+name;if(!rows.has(key))rows.set(key,{id,name,synthetic,gp:0,pts:0,reb:0,ast:0,stl:0,blk:0});return rows.get(key);}
  for(const g of games)for(const [id,score] of [[g.home,g.hs],[g.away,g.as]]){
   const t=team(id),line=id===s.teamId?s.world.playerGames.find(x=>x.stage==='regular'&&x.week===g.week):null;
-  let names=E.playerNames(t).filter(n=>n!==s.player.name).slice(0,9);
+  let names=E.playerNames(t).filter(n=>n!==s.player.name);if(names.length>9){const offset=((g.week||0)*9)%names.length;names=Array.from({length:9},(_,i)=>names[(offset+i)%names.length]);}
   if(!names.length)names=Array.from({length:7},(_,i)=>'Rotación '+(i+1));
   let remaining=score;
   if(line&&!line.dnp){const r=row(id,s.player.name,false);r.gp++;for(const k of ['pts','reb','ast','stl','blk'])r[k]+=line[k]||0;remaining=Math.max(0,score-line.pts);}
