@@ -54,3 +54,14 @@
 @keyframes wh-camera-flash{0%{filter:brightness(2)}100%{filter:brightness(1)}}
 @media(max-width:600px){.wh-clutch-actions,.wh-consequence-stats{grid-template-columns:1fr}.wh-clutch-modal{padding:20px}.wh-clutch-choice{padding:13px}.wh-clutch-score{margin:12px 0}.wh-life-due{display:grid}}
 @media(prefers-reduced-motion:reduce){.wh-animate *,.wh-clutch-cursor,.wh-clutch-score,.wh-purchase-icon,.wh-training-card:after{animation:none!important;transition:none!important;scroll-behavior:auto!important}}
+
+/* Plantillas e insignias encontradas en la base de baloncesto */
+.wh-resource-toolbar{display:flex;justify-content:space-between;gap:12px;align-items:center;flex-wrap:wrap;padding:12px 14px;margin:9px 0 15px;border:1px solid color-mix(in srgb,var(--club-primary) 24%,#315069);border-radius:11px;background:color-mix(in srgb,var(--club-primary) 11%,#14273a)}
+.wh-resource-toolbar>div{display:grid;gap:5px;min-width:0}
+.wh-resource-toolbar strong{font-size:12px;color:#e9f5ff}
+.wh-resource-toolbar small{font-size:10px;color:#b5c7d4;line-height:1.5}
+.wh-resource-toolbar .btn{white-space:normal}
+.wh-resource-status{font-size:11px;line-height:1.5;color:var(--club-accent);padding:0 7px 15px}
+.wh-animate .club-directory-row{transition:background .18s,transform .18s}
+.wh-animate .club-directory-row:hover{background:color-mix(in srgb,var(--club-primary) 11%,#1a2d3d);transform:translateX(2px)}
+@media(max-width:600px){.wh-resource-toolbar{display:grid}.wh-resource-toolbar .btn{width:100%}}
